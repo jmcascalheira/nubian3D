@@ -30,7 +30,7 @@ product_data <- file.path("analysis", "data", "raw_data", "product_data")
 dir.create(product_data, recursive = TRUE, showWarnings = FALSE)
 
 # Download core data from OSF (alternatively, use the link in a web browser to download the .zip file)
-osf_retrieve_file("") %>%
+osf_retrieve_file("https://osf.io/a8w5f") %>%
   osf_download(path = "analysis/data/raw_data/product_data")
 
 # Specify the path to the Zip file
