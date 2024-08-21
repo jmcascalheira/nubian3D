@@ -1,30 +1,18 @@
 ---
-title: "Title Goes Here"
+title: "Quantifying Levallois core shape using 3D geometric morphometrics: a new method applied to Nubian cores"
 author:
-  - Jane Doe:
+  - Emily Hallinan:
       correspondence: "yes"
-      email: janedoe@fosg.org
-      orcid: 0000-0003-1689-0557
-      institute:
-        - fosg
-        - fop
-  - John Q. Doe:
-      institute: fosg
-      orcid: 0000-0003-1689-0558
-  - Peder Ås:
-      institute: fosg
-      orcid: 0000-0003-1689-0559
-  - Juan Pérez:
-      orcid: 0000-0003-1689-0551
-      institute:
-        - name: Acme Corporation
-  - Max Mustermann:
-      orcid: 0000-0003-1689-0552
+      email: eshallinan@ualg.pt
+      orcid: 0000-0002-0698-8238
+      institute: ICArEHB
+  - João Cascalheira:
+      institute: ICArEHB
+      orcid: 0000-0003-0321-8892
 institute:
   - fosg:
-      name: Formatting Open Science Group
-      address: 23 Science Street, Eureka, Mississippi, USA
-  - fop: Federation of Planets
+      name: Interdiscipinary Center for Archaeology and Evolution of Human Behavior
+      address: Universidade do Algarve, Campus de Gambelas, 8005-139 Faro, Portugal
 title-block-published: "Last updated"  
 date: now
 date-format: long
@@ -42,12 +30,10 @@ filters:
   - ../templates/scholarly-metadata.lua
   - ../templates/author-info-blocks.lua
   - ../templates/pagebreak.lua
-bibliography: references.bib
-csl: "../templates/journal-of-archaeological-science.csl" # Insert path for the bib-style
 abstract: |
   Text of abstract
 keywords: |
-  keyword 1; keyword 2; keyword 3
+  3D geometric morphometrics; Levallois; Lithic technology; Nubian Levallois cores
 highlights: |
   These are the highlights. 
 ---
@@ -62,13 +48,35 @@ Highlights: `r rmarkdown::metadata$highlights`
 
 <!-- The actual document text starts here: -->
 
-# Introduction
+# 1. Introduction
 
-Here is a citation [@Marwick2017]
+Levallois technology is regarded as a hallmark of the Middle Stone Age (MSA) in Africa and the Middle Palaeolithic of Europe and western Asia, associated with at least three hominin species – archaic humans, anatomically modern humans and Neanderthals (Foley and Lahr 1997; Tryon et al. 2005; Hublin 2009). Named after the area in France, Levallois-Perret, where it was first described (Boucher de Perthes 1857; de Mortillet 1883; Commont 1909), Levallois is a type of prepared core technology that involves preparation of the convexities of the core surface to control the shape and size of the final end-product. The degree of planning involved in the pretermination of the Levallois end-product has been viewed as an indicator of cognitive complexity owing to the conceptualisation of the final core and product form, the sequential method required to achieve it, and social learning to transmit the process (Schlanger 1996; Lahr and Foley 2001; Wynn and Coolidge 2004; Lycett et al. 2016). The implications of Levallois for technical and economic behaviour has also seen varied interpretations, related to its efficiency (Brantingham and Kuhn 2001; Sandgathe 2004; Lycett and Eren 2013) and the role of its end-products (Sisk and Shea 2009; Eren and Lycett 2016; Shimelmitz and Kuhn 2018). Despite the central place that Levallois occupies in human evolution, its definition (Copeland 1983; Van Peer 1992; Dibble and Bar-Yosef 1995; Chazan 1997) and identification of both the technology (Hu et al. 2019a, 2019b; Li et al. 2019; Pallo 2022) and specific Levallois methods in assemblages (Rose et al. 2011; Goder-Goldberger et al. 2016; Blinkhorn et al. 2021a, 2021b, 2022; Hallinan et al. 2022a) remain highly debated topics.
 
-# Background
+While definitions of Levallois have shifted over the past decades, shape remains a key concept in all of them. Bordes (1950, 1961, 1980) emphasised the predetermined shape of the Levallois flake through special preparation of the core prior to its removal. Different configurations of preparatory removals from the core surface would produce end-products with different morphologies – flakes, blades or points. The classic Levallois ‘tortoise’ flake core was ovate with a flat upper surface that was shaped by a series of centripetal removals from around the perimeter, creating a form that resembled a tortoise carapace. The central preferential Levallois flake was then struck from a prepared striking platform on the perimeter, producing a large, flat oval blank. For Bordes, the morphology of the Levallois core was strongly tied to the end-product shape: an oval core produced an oval flake, a triangular core produced a triangular flake.
 
-# Methods
+Subsequent technological approaches have shifted attention away from the final flake form towards understanding the Levallois reduction process (Bar-Yosef and Dibble 1995). The most widely applied definition is that of Boëda (1988, 1994, 1995), focusing on the geometric structure of the Levallois core that is conceptualised as a volume and worked through a series of steps. Under Boëda’s Levallois concept, a set of criteria must be fulfilled. The volume of a core consists of two asymmetric convex hemispheres that possess a plane of intersection at the core’s margin. These hemispheres or surfaces are hierarchically related, each serving a specific, fixed role in reduction: a preparation surface for the production of striking platforms, and a flaking surface for the removal of the Levallois product. The flaking surface possesses both lateral and distal convexities that must be maintained to control the direction of force for the end-product. The Levallois product is removed parallel to the plane of intersection, using direct percussion with a hard hammer. Different Levallois strategies are distinguished whereby predetermined end-products can either be preferential (producing a single blank) or recurrent (producing multiple successive blanks), prior to the repreparation of the flaking surface. Viewed within a technological framework, it is the pattern and orientation of the preparatory flaking – not the core shape itself – that determines the morphology of the end-product (Boëda 1994, 1995; Van Peer 1992).
+
+# 2. Geometric Morphometrics and Levallois morphology
+
+### 2.1. Principles of shape in GM and Levallois technology
+
+Given that shape is so integral to the Levallois concept, it is perhaps surprising that geometric morphometric techniques have seldom been applied to questions related to its definition. Geometric morphometric (GM) approaches provide a statistical framework for studying shape variation – where shape is the specific geometric configuration of a specimen – independently of size (Slice 2007). Originally developed for applications in biological sciences (Rohlf and Marcus 1993; Adams et al. 2004), GM has gained traction as a powerful tool for quantitative analysis of shape across different aspects of lithic studies, though most commonly applied to bifaces, flakes and points since these can be consistently orientated and aligned according to geometrically correspondent points (e.g. Lycett et al. 2006; Archer and Braun 2010; Iovita 2011; Archer et al. 2016, 2018; Herzlinger et al. 2017; Herzlinger and Grosman 2018; Archer and Presynakova 2019; Okumura and Araujo 2019; Timbrell et al. 2022a). As a consequence, most current GM studies that relate to Levallois technology have focused on debitage, using two-dimensional (Eren and Lycett 2012; Picin et al. 2014; Buchanan et al. 2023) and, occasionally, three-dimensional techniques (Chaćon et al. 2016; Bustos-Perez et al. 2024). The problem of identifying homologous points between specimens for comparison has meant that the application of GM to cores has been limited, since this artefact type displays marked variability in form through continuous, non-uniform reduction trajectories. However, the highly structured geometry of Levallois cores means that common features can be identified between specimens and therefore shape can be compared objectively (Lycett et al. 2010; Lycett and von Cramon-Taubadel 2013).
+
+Elsewhere, 3D methods have been used to test the definition of Levallois cores against that of discoidal cores according to Boëda’s (1993, 1994) criteria, aiming to assess whether the latter can be regarded as a ‘formal’ (as opposed to expedient) technology (Ranhorn et al. 2019). This compared the volumes of the hemispheres and angles of the flaking surfaces – features that are central to distinguishing the two technologies, and that are extremely difficult to quantify using traditional measurement methods. While landmarks were used to delineate different features of the core (i.e., the plane of intersection between the two hemispheres, the outline of the main flake removal), this analysis did not explicitly use GM techniques (Ranhorn et al. 2019).
+
+In the only prior work addressing shape variability in preferential Levallois cores, 3D GM was applied to preferential centripetal Levallois cores to assess relative levels of shape variation across the core surfaces in specimens from Africa and Eurasia (Lycett and von Cramon-Taubadel 2013). This found relatively limited differences between core samples across space and time, with outline (planform) shape showing the greatest variability, whereas the least variation was seen in the topology of the upper flaking surface. This is consistent with the Levallois concept which concerns controlling the convexity of the upper surface. Critically, this also implies that outline shape of Levallois cores is the attribute most likely to reflect regionally or temporally distinct traditions, with Nubian Levallois cited as one possible example of this (Lycett and von Cramon-Taubadel 2013). Nubian Levallois was also central to an earlier study of the factors affecting Levallois end-product shape in Van Peer’s (1992) analysis of Nile Valley Middle Palaeolithic assemblages. Through attribute analysis and refitting, Van Peer demonstrated that, rather than core shape, the organisation of scar ridges on the Levallois surface are key in guiding the preferential removal and thus are what dictate the end-product shape. In Nubian cores, the steep angle of this guiding distal median ridge (DMR) is regarded as a characteristic feature of Nubian core morphology (Usik et al. 2013).
+
+Nubian Levallois describes a specific method for producing pointed end-products, named after the Nubian region of present-day southern Egypt and northern Sudan where it was first defined (Guichard and Guichard 1965; Hallinan and Marks 2023). Recently, the strict definition of Nubian Levallois cores has become important for identifying cores in regions beyond Nubia, with implications for the distribution of Nubian technology in terms of human demographic and cultural behaviour (Usik et al. 2013; Hallinan et al. 2022b). Shape is an important variable in a number of the defining attributes of Nubian technology and its end-products, but currently this is recorded descriptively (e.g. triangular, cordiform, pitched; Usik et al. 2013), or characterised using indices of elongation (length to width ratio), and flattening (width to thickness) (e.g. Blinkhorn et al. 2021a; Samawi and Hallinan 2024). However, this does not adequately capture shape either in two-dimensional outline or three-dimensional volume, and therefore important aspects of Nubian Levallois morphology and variability remain unexplored.
+
+This paper presents a new methodology for using 3D digital techniques to characterise the attributes that define Nubian Levallois cores. First, we outline the steps used to extract the relevant data from 3D models of scanned artefacts, providing R script and data to replicate the process in full. Then, we apply our method to 3D analysis of Middle Palaeolithic assemblages from sites with Nubian Levallois cores from two regions: the Nile Valley in Egypt, and Dhofar in southern Oman. Using the analytical tools of a GM approach, we address morphological variability within and between Nubian core assemblages and test a series of hypotheses arising out of prior work on shape in Levallois technology.
+
+## 2.2. Core shape and size
+
+All prior comparative studies of Nubian Levallois cores have used core size as the primary quantitative basis for analysis (e.g. Hilbert et al. 2016; Groucutt and Rose 2023; Samawi and Hallinan 2024). Size is important in studies of lithic variability and human technological and economic behaviour because stone knapping is a reductive process, and artefacts are observed in their discarded state (Dibble et al. 2017). For certain lithic artefact forms, such as bifaces (i.e. handaxes, bifacially-retouched points; Archer and Braun 2010; Key and Gowlett 2023; Thulman et al. 2023), artefact shape is demonstrated to change as they are progressively reduced in size through maintenance and resharpening. However, a characteristic of Levallois reduction is “auto-correlation” (Boëda 2013: 158), whereby the shape of the core will be maintained throughout the knapping process, regardless of its phase of reduction. Here, we test the expectation that the overall Nubian core shape template will be preserved in spite of size differences due to progressive reduction due to the strong geometric principles structuring Levallois technology.
+
+## 2.3. Core preparation strategy
+
+Van Peer (1992) proposed that the organisation of scar ridges on the Levallois surface are key in guiding the preferential removal and thus are what dictate the end-product shape. Nubian Levallois is a distinctive strategy of core preparation that creates a specific pointed morphology. We test whether variation in the preparation method (‘Type 1’ distal, ‘Type 2’ lateral, and ‘Type 1/2’ distal and lateral) affects core and end-product shape.
 
 # Results
 
