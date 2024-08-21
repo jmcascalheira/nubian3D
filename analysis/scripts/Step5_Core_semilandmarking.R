@@ -43,7 +43,7 @@ spheres3d(core_landmarks[1:3,,34], color = 1, radius = 1)
 spheres3d(core_landmarks[4:23,,34], color = 2, radius = 0.7)
 spheres3d(core_landmarks[24:43,,34], color = 3, radius = 0.7)
 spheres3d(core_landmarks[44:63,,34], color = 4, radius = 0.7)
-#rgl.snapshot('core_landmarks_example.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/core_landmarks_example.png', fmt = 'png')
 #close3d()
 
 ###------------------------------------------------------------------------
@@ -72,7 +72,7 @@ spheres3d(core_lms[1:3,,34], color = 1, radius = 1)
 spheres3d(core_lms[4:9,,34], color = 2, radius = 0.7)
 spheres3d(core_lms[10:24,,34], color = 3, radius = 0.7)
 spheres3d(core_lms[25:39,,34], color = 4, radius = 0.7)
-#rgl.snapshot('core_lms_example.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/core_lms_example.png', fmt = 'png')
 #close3d()
 
 ###---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ dimnames(core_lms)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curves <- slider3d(core_lms, SMvector = fix, deselect = TRUE, outlines = outlines,
-                         sur.path = "core_data", sur.type = "ply", iterations = 3)
+                         sur.path = "analysis/data/raw_data/core_data", sur.type = "ply", iterations = 3)
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curves$dataslide[,,34],core_lms[,,34],ngrid = 0)
@@ -100,7 +100,7 @@ deformGrid3d(slide_curves$dataslide[,,34],core_lms[,,34],ngrid = 0)
 shade3d(core1, color = "gray")
 spheres3d(slide_curves$dataslide[fix,,34],col=1,radius=1)
 spheres3d(slide_curves$dataslide[,,34],col=3,radius=0.7)
-#rgl.snapshot('core_lms_slid.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/core_lms_slid.png', fmt = 'png')
 #close3d()
 
 # Rename and save outline slms
@@ -133,7 +133,7 @@ spheres3d(pref_landmarks[1,,34], color = 1, radius = 1)
 spheres3d(pref_landmarks[40,,34], color = 1, radius = 1)
 spheres3d(pref_landmarks[2:39,,34], color = 3, radius = 0.7)
 spheres3d(pref_landmarks[41:50,,34], color = 4, radius = 0.7)
-#rgl.snapshot('pref_landmarks_example.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/pref_landmarks_example.png', fmt = 'png')
 #close3d()
 
 # Create an empty array for resampled semilandmarks (37 slms, 3 dimensions, 166 specimens)
@@ -155,7 +155,7 @@ spheres3d(pref_lms[37,,34], color = 1, radius = 1)
 spheres3d(pref_lms[31,,34], color = 1, radius = 1)
 spheres3d(pref_lms[1:30,,34], color = 3, radius = 0.7)
 spheres3d(pref_lms[32:36,,34], color = 4, radius = 0.7)
-#rgl.snapshot('pref_lms_example.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/pref_lms_example.png', fmt = 'png')
 #close3d()
 
 # Save for future use
@@ -169,7 +169,7 @@ dimnames(pref_lms)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curvesP <- slider3d(pref_lms, SMvector = fixP, deselect = TRUE, outlines = outlinesP,
-                          sur.path = "core_data", sur.type = "ply", iterations = 3)
+                          sur.path = "analysis/data/raw_data/core_data", sur.type = "ply", iterations = 3)
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curvesP$dataslide[,,34],pref_lms[,,34],ngrid = 0)
@@ -179,7 +179,7 @@ deformGrid3d(slide_curvesP$dataslide[,,34],pref_lms[,,34],ngrid = 0)
 shade3d(core1, color = "gray")
 spheres3d(slide_curvesP$dataslide[fixP,,34],col=4,radius=1)
 spheres3d(slide_curvesP$dataslide[,,34],col=3,radius=0.7)
-#rgl.snapshot('pref_lms_slid.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/pref_lms_slid.png', fmt = 'png')
 #close3d()
 
 # Rename and save
@@ -191,7 +191,7 @@ save(allprefs, file = "analysis/data/derived_data/allprefs.RData")
 ## STEP 5.5 Use semilandmarked surface patches on a single specimen to create a template
 # Create atlas using (arbitrarily selected) core ME78.389c (specimen #20 for slid outline slms) as a template
 coreT <- vcgImport(file.path(core_data, "CoreME78.389c_LR.ply"))
-core_temp <- as.matrix(read.table("CoreME78.389c_LRtemplate.pts", skip = 2, header = F)[,2:4])
+core_temp <- as.matrix(read.table("analysis/data/derived_data/CoreME78.389c_LRtemplate.pts", skip = 2, header = F)[,2:4])
 
 core_atlas <- createAtlas(coreT, landmarks = alloutline[,,20], patch = core_temp)
 plotAtlas(core_atlas)
@@ -201,7 +201,7 @@ plotAtlas(core_atlas)
 
 ## STEP 5.6 Place the patch onto all specimens
 # Deform the template over each mesh surface. The inflate parameter can be adjusted if there are placement errors observed in the checking stage
-allpatched <- placePatch(atlas = core_atlas, dat.array = alloutline, path = "core_data", inflate = 7, fileext = ".ply")
+allpatched <- placePatch(atlas = core_atlas, dat.array = alloutline, path = "analysis/data/raw_data/core_data", inflate = 7, fileext = ".ply")
 
 ###---------------------------------------------------------------------------
 
@@ -232,7 +232,7 @@ save(prefTH, file = "analysis/data/derived_data/prefTH.RData")
 
 
 # Import attributes for specimens
-cores <- read.csv("File_list_cores.csv")
+cores <- read.csv("analysis/data/derived_data/File_list_cores.csv")
 cores <- dplyr::arrange(cores, File_name)
 Assemblage <- factor(cores$Assemblage)
 Area <- factor(cores$Area)
@@ -245,14 +245,14 @@ Type <- factor(cores$Type)
 
 ## R data files can be loaded as:
 #core surfaces
-load("allpatched.RData")
-load("patchedNK.RData")
-load("patchedTH.RData")
+load("analysis/data/derived_data/allpatched.RData")
+load("analysis/data/derived_data/patchedNK.RData")
+load("analysis/data/derived_data/patchedTH.RData")
 
 #core outlines only
-load("alloutline.RData")
+load("analysis/data/derived_data/alloutline.RData")
 
 #pref scar outlines only
-load("allprefs.RData")
-load("prefNK.RData")
-load("prefTH.RData")
+load("analysis/data/derived_data/allprefs.RData")
+load("analysis/data/derived_data/prefNK.RData")
+load("analysis/data/derived_data/prefTH.RData")

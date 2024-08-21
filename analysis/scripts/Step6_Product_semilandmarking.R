@@ -50,7 +50,7 @@ spheres3d(prod_landmarks[4:43,,3], color = 2, radius = 0.7)
 spheres3d(prod_landmarks[44:48,,3], color = 3, radius = 0.7)
 spheres3d(prod_landmarks[49:58,,3], color = 4, radius = 0.7)
 spheres3d(prod_landmarks[59:63,,3], color = 5, radius = 0.7)
-#rgl.snapshot('prod_landmarks_example.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/prod_landmarks_example.png', fmt = 'png')
 #close3d()
 
 ###---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ spheres3d(prod_lms[4:6,,3], color = 5, radius = 0.7) #ventr platform slms
 spheres3d(prod_lms[7:9,,3], color = 3, radius = 0.7) #ventr platform slms
 spheres3d(prod_lms[10:17,,3], color = 4, radius = 0.7) #dors platform slms
 spheres3d(prod_lms[18:47,,3], color = 2, radius = 0.7) #outline slms
-rgl.snapshot('prod_lm_example.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/prod_lm_example.png', fmt = 'png')
 #close3d()
 
 ###---------------------------------------------------------------------------
@@ -102,7 +102,7 @@ dimnames(prod_lms)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curves <- slider3d(prod_lms, SMvector = fix, deselect = TRUE, outlines = outlines,
-                            sur.path = "Product_data", sur.type = "ply", iterations = 3)
+                            sur.path = "analysis/data/raw_data/product_data", sur.type = "ply", iterations = 3)
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curves$dataslide[,,3],prod_lms[,,3],ngrid = 0)
@@ -116,13 +116,13 @@ spheres3d(slide_curves$dataslide[,,3], color = 2, radius=0.7)
 
 # Rename and save
 prod_outline <- slide_curves$dataslide # Product outline data are not used for analysis in this paper but is used in subsequent slm processing steps
-save(prod_outline, file = "prod_outline.RData")
+save(prod_outline, file = "analysis/data/derived_data/prod_outline.RData")
 
 ###---------------------------------------------------------------------------
 
 ## STEP 6.4 Use semilandmarked surface patches on a single specimen to create a template
 # Create atlas using (arbitrarily selected) product ME78.1017.4 (specimen #3 for slid outline slms) as a template
-prod_temp <- as.matrix(read.table("PointME78.1017.4_LRtemplate.pts", skip = 2, header = F)[,2:4])
+prod_temp <- as.matrix(read.table("analysis/data/raw_data/derived_data/PointME78.1017.4_LRtemplate.pts", skip = 2, header = F)[,2:4])
 outl_temp <- prod_outline[,,3]
 
 prod_atlas <- createAtlas(product1, landmarks = outl_temp, patch = prod_temp)
@@ -133,7 +133,7 @@ plotAtlas(prod_atlas)
 
 ## STEP 6.5 Place the patch onto all specimens.
 # Deform the template over each mesh surface. The inflate parameter can be adjusted if there are placement errors observed in the checking stage
-prod_patched <- placePatch(atlas = prod_atlas, dat.array = prod_outline, path = "Product_data", inflate = 5, fileext = ".ply")
+prod_patched <- placePatch(atlas = prod_atlas, dat.array = prod_outline, path = "analysis/data/raw_data/product_data", inflate = 5, fileext = ".ply")
 
 ###---------------------------------------------------------------------------
 
@@ -142,7 +142,7 @@ checkLM(prod_patched, atlas=prod_atlas)
 #close3d()
 
 # Save the patched slm data
-save(prod_patched, file = "prod_patched.RData")
+save(prod_patched, file = "analysis/data/derived_data/prod_patched.RData")
 
 ## Dataset is ready for GM comparison of end-products. The next step is required to extract the product ventral for comparison with the final preferential scar on cores.
 
@@ -178,7 +178,7 @@ spheres3d(prod_ventr[31,,3],col=1,radius=1)
 spheres3d(prod_ventr[37,,3],col=1,radius=1)
 spheres3d(prod_ventr[1:30,,3],col=3,radius=0.7)
 spheres3d(prod_ventr[32:36,,3],col=4,radius=0.7)
-#rgl.snapshot('prodventr_landmarks_example.png', fmt = 'png')
+#rgl.snapshot('analysis/figures/prodventr_landmarks_example.png', fmt = 'png')
 #close3d()
 
 # Define fixed LMs (that do not slide) and semilandmarks on outline curves to relax landmarks
@@ -192,7 +192,7 @@ dimnames(prod_ventr)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curvesPv <- slider3d(prod_ventr, SMvector = fixPv, deselect = TRUE, outlines = outlinesPv,
-                          sur.path = "Product_data", sur.type = "ply", iterations = 3)
+                          sur.path = "analysis/data/raw_data/product_data", sur.type = "ply", iterations = 3)
 
 # View slid slms on mesh model
 shade3d(product1, color = "gray")
@@ -202,7 +202,7 @@ spheres3d(slide_curvesPv$dataslide[,,3],col=3,radius=0.7)
 
 # Rename and save
 prod_voutline <- slide_curvesPv$dataslide
-save(prod_voutline, file = "prod_voutline.RData")
+save(prod_voutline, file = "analysis/data/derived_data/prod_voutline.RData")
 
 ###---------------------------------------------------------------------------
 
@@ -222,5 +222,5 @@ Flake_scars <- factor(pts$Flake_scars)
 ## Product data are now ready for GM analyses
 
 ## R data files can be loaded as:
-load("prod_patched.RData") # product 3D surfaces
-load("prod_voutline.RData") # product ventral outline only (for comparison with core pref scar)
+load("analysis/data/derived_data/prod_patched.RData") # product 3D surfaces
+load("analysis/data/derived_data/prod_voutline.RData") # product ventral outline only (for comparison with core pref scar)
