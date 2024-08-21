@@ -1,0 +1,2014 @@
+---
+title: "3D GM methods applied to Nubian cores"
+author: "Emily Hallinan"
+date: "2024-08-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, echo = TRUE, results = 'hide', message = FALSE, warning = FALSE, fig.show = 'hide')
+```
+
+------------------------------------------------------------------------
+
+## 1. 3D Data Acquisition
+
+**Hardware:** Einscan Pro 2x Plus structured light scanner\
+**Software:** Shining 3D\
+**Method:** Each specimen was captured in multiple orientations and these scans were automatically aligned in the Shining 3D software associated with the scanner.\
+**Export:** Mesh models were generated at medium resolution and exported in .ply format.
+
+------------------------------------------------------------------------
+
+## 2. 3D Model Processing
+
+**Software:** Meshlab (Cignoni et al. 2008)\
+**Tool:** Quadric edge decimation resampling (Garland & Heckbert 1997)\
+**Method:** Each specimen was simplified using the Quadric edge decimation resampling tool in Meshlab, to a quality threshold of 0.3.\
+**Export:** Resampled mesh models were exported in .ply format and distinguished from the original model file name by the addition of “\_LR”.
+
+------------------------------------------------------------------------
+
+## 3. Landmarking: Cores
+
+**Software:** Landmark V3 (IDAV, University of California, Davis).\
+*Note:* *this software is no longer maintained but other landmark collection software such as Stratovan Checkpoint and (open-source) SlicerMorph (<https://slicermorph.github.io/#two>) provide the same functions.*\
+**Method:**
+
+1.  The core was oriented to the upper/exploitation surface, with the main proximal (preferential removal) platform at the top. Using the ‘single point’ tool, three fixed landmarks (LM) were placed – LM1 distal extremity where the distal medial ridge meets the core edge, LM2 platform left lateral extremity, LM3 platform right lateral extremity. Note that the numbering of landmark points in the Landmark interface names the first point 0. For specimens that do not have a clear position for a distal landmark (i.e. when adapting this method for non-pointed/non-Nubian Levallois cores), a point was marked and then assigned as ‘missing’.This point can be excluded at the import stage into R.
+
+2.  Using the ‘single point’ tool (note: not the curve tool) three edge curves were defined through landmark placement of 60 points at the intersection of the core upper and lower hemispheres (to be subsequently resampled as semilandmarks (SLMs) in step 5.2) – one curve of 20 points beginning at the right platform edge (LM3) anticlockwise to the left platform edge (LM2) (points 4-23), one curve of 20 points beginning at LM2 proceeding anticlockwise to the core distal point (LM1) (points 24-43); one curve of 20 points beginning at LM1 proceeding anticlockwise to LM3 (points 44-63). For specimens with no distal LM1, this curve of 40 points is continuous between LMs 2 and 3.
+
+3.  The distal medial ridge (where identifiable) was defined by 7 points, beginning at the distal tip and extending to the furthest intersection point of the scars forming the ridge (points 64-70). For specimens with no distal ridge, these points were placed arbitrarily and then assigned as ‘missing’.
+
+4.  The final/preferential scar (where identifiable) was defined by 50 points, placing 40 points beginning at the left intersection of the preferential scar ridge and the core platform proceeding anticlockwise to the right intersection of the scar and platform (points 71-110), and 10 points proceeding anticlockwise along the platform (points 111-120).
+
+5.  On one template artefact, two surface patches (P) were placed on the upper/exploitation surface (P1) and lower/preparation (P2) surface. These were each formed of 10 x 20 SLMs in a regular grid formation.
+
+**Export:** Landmark configurations were exported individually for each specimen in .pts format with the same filename as the corresponding .ply model.
+
+------------------------------------------------------------------------
+
+## 4. Landmarking: Products
+
+**Software:** Landmark V3 (IDAV, University of California, Davis) (or equivalent landmarking software)\
+**Method:** after Archer et al. (2018, 2021)
+
+1.  The product/blank was oriented to the ventral face with the platform at the top. Using the ‘single point’ tool, three fixed landmarks (LM) were placed on the platform – LM1 point of percussion, LM2 platform left lateral extremity, LM3 platform right lateral extremity. Note that the numbering of landmark points in the Landmark interface names the first point 0.
+
+2.  Using the ‘single point’ tool (note: not the curve tool) four curves were defined through landmark placement (to be subsequently resampled as SLMs in step 6.2) – three platform curves of 5, 5 and 10 points, beginning at the point of percussion (LM1) and proceeding clockwise; one curve of 40 points around the product edge at the intersection between dorsal and ventral surfaces, proceeding LM2 anticlockwise to LM3.
+
+3.  On one template artefact, three surface SLM patches (P) were placed on the platform (P1, 3 x 6 points), dorsal (P2, 20 x 10 points) and ventral (P3, 20 x 10 points) surfaces.
+
+**Export:** Landmark configurations were exported individually for each specimen in .pts format, with the same filename as the corresponding .ply model.
+
+------------------------------------------------------------------------
+
+## 5. Semilandmark processing: Cores
+
+**Software:** R (R Core Team 2024)\
+**Packages:**\
+- Morpho (Schlager 2017) (v2.12)\
+- Rvcg (Schlager 2017) (v0.23)\
+- geomorph (Baken et al. 2021; Adams et al. 2024) (v4.0.8)\
+- rgl (Murdoch & Adler 2024) (v1.3.1)\
+- dplyr (Wickham et al. 2023) (v1.1.4)\
+
+```{r Step 5 setup}
+# Install and load required packages
+library(Morpho)
+library(Rvcg)
+library(geomorph)
+library(rgl)
+library(dplyr)
+```
+
+**Data:** Corresponding .ply and .pts files for 115 cores from NK sites and 51 from TH sites (total, 166) in folder "Core_data".\
+
+```{r include=FALSE}
+knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
+```
+
+**Method:**
+
+1.  The corresponding 3D models (.ply) and landmark co-ordinates (.pts) for points 1 to 63 on each specimen were imported into R in a single matrix, then converted into a data array called “core landmarks” (package: geomorph, function: arrayspecs).
+
+```{r Step 5.1}
+## Ensure GM_METHODS folder is set as the WD
+# Define a path to the folder with core data
+core_data <- file.path("Core_data")
+
+# Create list of files with .pts extension
+corelist <- list.files(path = core_data, pattern = ".pts")
+
+# Get names from files
+names <- gsub(".pts", "", basename(corelist))
+
+# Create empty array
+core_landmarks <- NULL
+
+# Import each file (selecting landmarks 1 to 63) and paste them in a single matrix
+for (i in 1:length(corelist)){
+  core_path <- file.path(core_data, corelist[i])
+  tmp <- as.data.frame(read.table(core_path, skip = 2, header = F)[1:63,2:4])
+  tmp <- as.matrix(tmp)
+  core_landmarks <- rbind(core_landmarks, tmp)
+}
+
+core_landmarks <- mapply(core_landmarks, FUN=as.numeric)
+core_landmarks <- matrix(data=core_landmarks, ncol=3)
+
+# Convert landmark 3D data matrix into array (63 lms, 3 dimensions)
+core_landmarks <- geomorph::arrayspecs(core_landmarks, 63, 3)
+
+# View specimen example with imported landmark configuration
+core1 <- vcgImport(file.path(core_data, "CoreME78.627Aa_LR.ply"))
+shade3d(core1, color = "gray")
+spheres3d(core_landmarks[1:3,,34], color = 1, radius = 1)
+spheres3d(core_landmarks[4:23,,34], color = 2, radius = 0.7)
+spheres3d(core_landmarks[24:43,,34], color = 3, radius = 0.7)
+spheres3d(core_landmarks[44:63,,34], color = 4, radius = 0.7)
+#rgl.snapshot('core_landmarks_example.png', fmt = 'png')
+close3d()
+```
+
+2.  **Core outline:** A new array was created for resampled SLMs “core_lms”, with dimensions k x m x n (39 points, 3 x-y-z co-ordinate dimensions, 166 specimens). SLMs on the three core edge curves were resampled and redistributed with equal spacing on all specimens (package: geomorph, function: digit.curves), formed of 6 platform points, and two edge curves of 15 points.
+
+```{r Step 5.2}
+# Create a new data array for resampled semilandmarks (39 slms, 3 dimensions, 166 specimens)
+core_lms <- array(0, dim=c(39,3,166))
+
+# Resample semilandmarks on curves between fixed landmarks and redistribute to be equally-spaced
+for(i in 1:dim(core_landmarks)[3]) {
+  startA <- core_landmarks[3,,i]
+  startB <- core_landmarks[2,,i]
+  startC <- core_landmarks[1,,i]
+  curveA <- digit.curves(startA, rbind(core_landmarks[4:23,,i], startB), nPoints = 6, closed = F)
+  curveB <- digit.curves(startB, rbind(core_landmarks[24:43,,i], startC), nPoints = 15, closed = F)
+  curveC <- digit.curves(startC, rbind(core_landmarks[44:63,,i], startA), nPoints = 15, closed = F)
+  comb <- rbind(startA, startB, startC, curveA[2:(nrow(curveA)-1),], curveB[2:(nrow(curveB)-1),], curveC[2:(nrow(curveC)-1),])
+  core_lms[,,i] <- comb
+}
+
+# Save the new semilandmark array for ease of future use
+save(core_lms, file = "core_lms.RData")
+
+# To view an example core mesh (.ply) with resampled slms (identify the correct specimen number (#34) by viewing 'corelist')
+shade3d(core1, color = "gray")
+spheres3d(core_lms[1:3,,34], color = 1, radius = 1)
+spheres3d(core_lms[4:9,,34], color = 2, radius = 0.7)
+spheres3d(core_lms[10:24,,34], color = 3, radius = 0.7)
+spheres3d(core_lms[25:39,,34], color = 4, radius = 0.7)
+#rgl.snapshot('core_lms_example.png', fmt = 'png')
+close3d()
+```
+
+3.  The resampled SLMs were then slid (relaxed) along the core edge to mimimise the Procrustes distance across the dataset using the Procrustes consensus (mean shape) as a reference (package: Morpho, function: slider3d). Three fixed landmark points (“fix”) were defined (points 1-3), and three curves (“outlines”) formed by sliding points (points 4-9, 10-24 and 25-39). The new SLM points (\$dataslide) were saved in the data array “alloutline”.
+
+```{r Step 5.3}
+# Define fixed LMs (that do not slide) and semilandmarks on outline curves to slide
+fix <- c(1:3)
+outlineA <- c(4:9)
+outlineB <- c(10:24)
+outlineC <- c(25:39)
+
+outlines <- list(outlineA, outlineB, outlineC)
+
+dimnames(core_lms)[[3]] <- names
+
+# Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
+slide_curves <- slider3d(core_lms, SMvector = fix, deselect = TRUE, outlines = outlines,
+                         sur.path = "core_data", sur.type = "ply", iterations = 3)
+
+# Visualise slid slms from previous to new positions
+deformGrid3d(slide_curves$dataslide[,,34],core_lms[,,34],ngrid = 0)
+close3d()
+
+# View slid slms on mesh model
+shade3d(core1, color = "gray")
+spheres3d(slide_curves$dataslide[fix,,34],col=1,radius=1)
+spheres3d(slide_curves$dataslide[,,34],col=3,radius=0.7)
+#rgl.snapshot('core_lms_slid.png', fmt = 'png')
+close3d()
+
+# Rename and save outline slms
+alloutline <- slide_curves$dataslide
+save(alloutline, file = "alloutline.RData")
+```
+
+4.  **Preferential scar outline:** A new array was created (“pref_landmarks”) and the 50 preferential scar outline landmarks (points 71 to 120) imported for each specimen. The SLM resampling (digit.curves) and sliding process (silder3d) was repeated for the preferential scar outline, with two curves formed of 30 edge points and 5 platform points, saved in a new data array “allprefs”, with dimensions 37 x 3 x 166. Note that because the sliding process allows SLMs to be slid along the core model surface, which here extends beyond the limits of the preferential scar outline, the platform SLMs (31-38) were treated as fixed points and excluded from the second relaxation step to avoid their misplacement.
+
+```{r Step 5.4}
+# Create a new data array for pref scar landmarks
+pref_landmarks <- NULL
+
+# Import each file and paste them in a single matrix (this extracts only landmarks 71 to 120 from the .pts file)
+for (i in 1:length(corelist)){
+  core_path <- file.path(core_data, corelist[i])
+  tmp <- as.data.frame(read.table(core_path, skip = 2, header = F)[71:120,2:4])
+  tmp <- as.matrix(tmp)
+  pref_landmarks <- rbind(pref_landmarks, tmp)
+}
+
+pref_landmarks <- mapply(pref_landmarks, FUN=as.numeric)
+pref_landmarks <- matrix(data=pref_landmarks, ncol=3)
+
+# Convert landmark 3D data matrix into array (50 lms, 3 dimensions)
+pref_landmarks <- geomorph::arrayspecs(pref_landmarks, 50, 3)
+
+# View specimen example with imported landmark configuration
+shade3d(core1, color = "gray")
+spheres3d(pref_landmarks[1,,34], color = 1, radius = 1)
+spheres3d(pref_landmarks[40,,34], color = 1, radius = 1)
+spheres3d(pref_landmarks[2:39,,34], color = 3, radius = 0.7)
+spheres3d(pref_landmarks[41:50,,34], color = 4, radius = 0.7)
+#rgl.snapshot('pref_landmarks_example.png', fmt = 'png')
+close3d()
+
+# Create an empty array for resampled semilandmarks (37 slms, 3 dimensions, 166 specimens)
+pref_lms <- array(0, dim=c(37,3,166))
+
+# Redistribute equally-spaced semilandmarks on all specimens along two curves (5 platform and 30 edge points)
+for(i in 1:dim(pref_landmarks)[3]) {
+  startA <- pref_landmarks[1,,i]
+  startB <- pref_landmarks[40,,i]
+  curveA <- digit.curves(startA,rbind(pref_landmarks[2:39,,i], startB), nPoints = 30, closed = F)
+  curveB <- digit.curves(startB, rbind(pref_landmarks[41:50,,i], startA), nPoints = 5, closed = F)
+  comb <- rbind(curveA[2:nrow(curveA),], curveB[2:nrow(curveB),])
+  pref_lms[,,i] <- comb
+}
+
+# View resampled example specimen
+shade3d(core1, color = "gray")
+spheres3d(pref_lms[37,,34], color = 1, radius = 1)
+spheres3d(pref_lms[31,,34], color = 1, radius = 1)
+spheres3d(pref_lms[1:30,,34], color = 3, radius = 0.7)
+spheres3d(pref_lms[32:36,,34], color = 4, radius = 0.7)
+#rgl.snapshot('pref_lms_example.png', fmt = 'png')
+close3d()
+
+# Save for future use
+save(pref_lms, file = "pref_lms.RData")
+
+# Fix platform landmarks and relax edge semilandmarks on pref scar outline
+fixP <- c(31:37)
+outlinesP <- c(1:30)
+
+dimnames(pref_lms)[[3]] <- names
+
+# Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
+slide_curvesP <- slider3d(pref_lms, SMvector = fixP, deselect = TRUE, outlines = outlinesP,
+                          sur.path = "core_data", sur.type = "ply", iterations = 3)
+
+# Visualise slid slms from previous to new positions
+deformGrid3d(slide_curvesP$dataslide[,,34],pref_lms[,,34],ngrid = 0)
+close3d()
+
+# View slid slms on mesh model
+shade3d(core1, color = "gray")
+spheres3d(slide_curvesP$dataslide[fixP,,34],col=4,radius=1)
+spheres3d(slide_curvesP$dataslide[,,34],col=3,radius=0.7)
+#rgl.snapshot('pref_lms_slid.png', fmt = 'png')
+close3d()
+
+# Rename and save
+allprefs <- slide_curvesP$dataslide
+save(allprefs, file = "allprefs.RData")
+```
+
+5.  **Core surface patch:** A template artefact was selected (CoreME78.389c) that did not represent any extremes in artefact shape, and two surface patches were placed (see 4.5 above). An atlas was created from the template mesh (package: Morpho, function: createAtlas) with the core outline defined by slid SLM points (“alloutline”).
+
+```{r Step 5.5}
+# Create atlas using (arbitrarily selected) core ME78.389c (specimen #20 for slid outline slms) as a template
+coreT <- vcgImport(file.path(core_data, "CoreME78.389c_LR.ply"))
+core_temp <- as.matrix(read.table("CoreME78.389c_LRtemplate.pts", skip = 2, header = F)[,2:4])
+
+core_atlas <- createAtlas(coreT, landmarks = alloutline[,,20], patch = core_temp)
+plotAtlas(core_atlas)
+```
+
+6.  The surface points (patch) from the template (atlas) were warped and projected onto the shape of each specimen (function: placePatch), placing 400 surface SLMs, saved as a new data array combining outline and surface points, “allpatched”, with dimensions 439 x 3 x 166.
+
+```{r Step 5.6}
+# Deform the template patch over each mesh surface. The inflate parameter can be adjusted if there are placement errors observed in the checking stage
+allpatched <- placePatch(atlas = core_atlas, dat.array = alloutline, path = "core_data", inflate = 7, fileext = ".ply")
+```
+
+7.  The deformation was checked for each specimen (function: checkLM), visualised in 3D using the Morpho dependent package rgl. Where deformation was not successful (i.e. visualisation did not show the expected placement of two surface patches (green spheres) separated by a semilandmarked outline (red spheres); or there were clear gaps in the patch grid), the landmark order was checked at the original landmark placement step (in Landmark V3). If no ordering problems were detected, the inflate parameter can be adjusted (here, 7 was found to eliminate errors) and the deformation step repeated. If there are a high number of failures, another solution is to apply an alternative template. See Bardua et al. (2019) for useful guidelines and solutions to semilandmarking errors (applied to biological specimens).
+
+```{r Step 5.7}
+# Check patch slms have deformed correctly on each specimen (this is time consuming but essential to check the deformation process). If there are placement errors, try increasing the inflate parameter, or repeat previous steps excluding problem specimens.
+checkLM(allpatched, atlas=core_atlas)
+
+# Save the patched slm data
+save(allpatched, file = "allpatched.RData")
+```
+
+8.  To prepare the data for comparative analysis, it was split into separate datasets for the Nazlet Khater (NK) and Dhofar (TH) samples to allow for inter-regional analyses in later steps. Attributes (i.e. assemblage, preparation pattern, Nubian Type) were then imported from a .csv and appended to each specimen by filename.
+
+```{r Step 5.8}
+# Extract specimens 1-115 into "patchedNK"
+patchedNK <- allpatched[, , 1:115]
+save(patchedNK, file = "patchedNK.RData")
+
+# Extract specimens 116-166 into "patchedTH"
+patchedTH <- allpatched[, , 116:166]
+save(patchedTH, file = "patchedTH.RData")
+
+# Extract specimens 1-115 into "prefNK"
+prefNK <- allprefs[, , 1:115]
+save(prefNK, file = "prefNK.RData")
+
+# Extract specimens 116-166 into "prefTH"
+prefTH <- allprefs[, , 116:166]
+save(prefTH, file = "prefTH.RData")
+
+
+# Import attributes for specimens
+cores <- read.csv("File_list_cores.csv")
+cores <- dplyr::arrange(cores, File_name)
+Assemblage <- factor(cores$Assemblage)
+Area <- factor(cores$Area)
+Scars <- factor(cores$Preparation)
+Type <- factor(cores$Type)
+```
+
+------------------------------------------------------------------------
+
+## 6. Semilandmark processing: Products
+
+**Software:** R (R Core Team 2024)\
+**Packages:**\
+- Morpho (Schlager 2017) (v2.12)\
+- Rvcg (Schlager 2017) (v0.23)\
+- geomorph (Baken et al. 2021; Adams et al. 2024) (v4.0.8)\
+- rgl (Murdoch & Adler 2024) (v1.3.1)\
+- dplyr (Wickham et al. 2023) (v1.1.4)\
+
+```{r}
+# Ensure all required libraries are loaded
+library(Morpho)
+library(Rvcg)
+library(geomorph)
+library(rgl)
+library(dplyr)
+```
+
+**Data:** Corresponding .ply and .pts files for 178 Levallois products (blanks) from NK sites in folder "Product_data".\
+
+```{r include=FALSE}
+knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
+```
+
+**Method:** after Archer et al. (2018, 2021)\
+
+1.	The corresponding 3D models (.ply) and landmark co-ordinates (.pts) were imported into R in a single matrix. The fixed landmarks (points 1-3) were kept at the start, but points 4-63 were imported in descending order. This is because the landmarks (step 3) were placed following the ordering protocol of Archer et al. (2018, 2021), but for comparison of products and core preferential scars, which matches the product ventral to the core surface, the numbering order must be reversed. This was then converted into a data array (package: geomorph, function: arrayspecs) (“landmarks”).
+
+```{r Step 6.1}
+# Define a path to the folder with core data
+Product_data <- file.path("Product_data")
+
+# Create list of files with .pts extension
+prodlist <- list.files(path = Product_data, pattern = ".pts")
+
+# Get names from files
+names <- gsub(".pts", "", basename(prodlist))
+
+# Create empty array
+prod_landmarks <- NULL
+
+# Import each file and paste them in a single matrix. By placing points 4-63 in descending order, this step reverses the direction of the landmarks
+for (i in 1:length(prodlist)){
+  prod_path <- file.path(Product_data, prodlist[i])
+  tmp <- as.data.frame(read.table(prod_path, skip = 2, header = F)[,2:4])
+  fix <- tmp[1:3,]
+  tmp <- arrange(tmp, desc(row_number()))
+  tmp <- rbind(fix,tmp)
+  tmp <- tmp[1:63,]
+  tmp <- as.matrix(tmp)
+  prod_landmarks <- rbind(prod_landmarks, tmp)
+}
+
+prod_landmarks <- mapply(prod_landmarks, FUN=as.numeric)
+prod_landmarks <- matrix(data=prod_landmarks, ncol=3)
+
+# Convert landmark 3D data matrix into array (63 lms, 3 dimensions)
+prod_landmarks <- geomorph::arrayspecs(prod_landmarks, 63, 3)
+
+# To check the new landmark configuration on an example mesh (identify the correct specimen number (#3) by viewing 'prodlist')
+product1 <- vcgImport(file.path(Product_data, "PointME78.1017.4_LR.ply"))
+shade3d(product1, color = "gray")
+spheres3d(prod_landmarks[1,,3], color = 1, radius = 1)
+spheres3d(prod_landmarks[2:3,,3], color = "darkgrey", radius = 1)
+spheres3d(prod_landmarks[4:43,,3], color = 2, radius = 0.7)
+spheres3d(prod_landmarks[44:48,,3], color = 3, radius = 0.7)
+spheres3d(prod_landmarks[49:58,,3], color = 4, radius = 0.7)
+spheres3d(prod_landmarks[59:63,,3], color = 5, radius = 0.7)
+#rgl.snapshot('prod_landmarks_example.png', fmt = 'png')
+close3d()
+```
+
+2.	**Product outline:** A new array was created for resampled SLMs “prod_lms”, with dimensions k x m x n (47 points, 3 x-y-z co-ordinate dimensions, 178 specimens). SLMs on four curves were resampled and redistributed with equal spacing on all specimens (package: geomorph, function: digit.curves). These curves were formed of 3 (ventral platform edge, left of percussion point), 3 (ventral platform edge, right of percussion point) and 8 (dorsal platform edge) platform points, and 30 points around the edge of the blank.
+
+```{r Step 6.2}
+# Create a new data array for resampled semilandmarks (47 slms, 3 dimensions, 178 specimens)
+prod_lms <- array(0, dim=c(47,3,178))
+
+# Resample semilandmarks on curves between fixed landmarks and redistribute to be equally-spaced
+for(i in 1:dim(prod_landmarks)[3]) {
+  pp <- prod_landmarks[1,,i]
+  ptA <- prod_landmarks[3,,i]
+  ptB <- prod_landmarks[2,,i]
+  curveA <- digit.curves(ptB, rbind(prod_landmarks[59:63,,i], pp), nPoints = 3, closed = F)
+  curveB <- digit.curves(pp, rbind(prod_landmarks[44:48,,i], ptA), nPoints = 3, closed = F)
+  curveC <- digit.curves(ptA, rbind(prod_landmarks[49:58,,i], ptB), nPoints = 8, closed = F)
+  curveD <- digit.curves(ptA,rbind(prod_landmarks[4:43,,i],ptB), nPoints = 30, closed = F)
+  comb <- rbind(pp, ptB, ptA, curveA[2:(nrow(curveA)-1),], curveB[2:(nrow(curveB)-1),], curveC[2:(nrow(curveC)-1),], curveD[2:(nrow(curveD)-1),])
+  prod_lms[,,i] <- comb
+}
+
+# Save the new semilandmark array for ease of future use
+save(prod_lms, file = "prod_lms.RData")
+
+# To view the resampled slm configuration on an example mesh
+shade3d(product1, color = "gray")
+spheres3d(prod_lms[1,,3], color = 1, radius = 1) #fixed lms
+spheres3d(prod_lms[2:3,,3], color = "darkgrey", radius = 1) #fixed lms
+spheres3d(prod_lms[4:6,,3], color = 5, radius = 0.7) #ventr platform slms
+spheres3d(prod_lms[7:9,,3], color = 3, radius = 0.7) #ventr platform slms
+spheres3d(prod_lms[10:17,,3], color = 4, radius = 0.7) #dors platform slms
+spheres3d(prod_lms[18:47,,3], color = 2, radius = 0.7) #outline slms
+#rgl.snapshot('prod_lm_example.png', fmt = 'png')
+close3d()
+
+```
+
+3.	The resampled SLMs were then slid (relaxed) along the blank edge to mimimise Procrustes distance across the dataset using the Procrustes consensus (mean shape) as a reference (package: Morpho, function: slider3d). Three fixed landmark points were defined (points 1-3), and four outlines formed by sliding points (points 4-6, 7-9, 10-17 (platform) and 18-47 (outline)). The new SLM points ($dataslide) were saved in the data array “prod_outline”.
+
+```{r Step 6.3}
+# Define fixed LMs (that do not slide) and semilandmarks on outline curves to slide
+fix <- c(1:3)
+outlineA <- c(4:6)
+outlineB <- c(7:9)
+outlineC <- c(10:17)
+outlineD <- c(18:47)
+
+outlines <- list(outlineA, outlineB, outlineC, outlineD)
+
+dimnames(prod_lms)[[3]] <- names
+
+# Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
+slide_curves <- slider3d(prod_lms, SMvector = fix, deselect = TRUE, outlines = outlines,
+                            sur.path = "Product_data", sur.type = "ply", iterations = 3)
+
+# Visualise slid slms from previous to new positions
+deformGrid3d(slide_curves$dataslide[,,3],prod_lms[,,3],ngrid = 0)
+#close3d()
+
+# View slid slms on mesh model
+shade3d(product1, color = "gray")
+spheres3d(slide_curves$dataslide[fix,,3], color = 1, radius=1)
+spheres3d(slide_curves$dataslide[,,3], color = 2, radius=0.7)
+#close3d()
+
+# Rename and save
+prod_outline <- slide_curves$dataslide # Product outline data are not used for analysis in this paper but is used in subsequent slm processing steps
+save(prod_outline, file = "prod_outline.RData")
+```
+4.	**Product surface patch:** A template artefact was selected (PointME78.1017.4) that did not represent any extremes in artefact shape, and three surface patches were placed (see step 3.3 above), composed of 18, 100 and 100 SLMs. Following the same procedure for cores in step 5.5, an atlas was created from the template mesh (package: Morpho, function: createAtlas) with the blank outline defined by slid SLM points (“prod_outline”).
+
+```{r Step 6.4}
+# Create atlas using (arbitrarily selected) product ME78.1017.4 (specimen #3 for slid outline slms) as a template
+prod_temp <- as.matrix(read.table("PointME78.1017.4_LRtemplate.pts", skip = 2, header = F)[,2:4])
+outl_temp <- prod_outline[,,3]
+
+prod_atlas <- createAtlas(product1, landmarks = outl_temp, patch = prod_temp)
+plotAtlas(prod_atlas)
+```
+
+5.	The surface points (patch) from the template (atlas) were warped and projected onto the shape of each specimen (function: placePatch), placing 218 surface SLMs, saved as a new data array combining outline and surface points, “prod_patched”, with dimensions 265 x 3 x 178.
+
+```{r Step 6.5}
+# Deform the template over each mesh surface. The inflate parameter can be adjusted if there are placement errors observed in the checking stage
+prod_patched <- placePatch(atlas = prod_atlas, dat.array = prod_outline, path = "Product_data", inflate = 5, fileext = ".ply")
+```
+
+6.	The deformation was checked for each specimen (function: checkLM), visualised in 3D using the Morpho dependent package rgl. See step 5.7 above for solutions to patch placement problems.
+
+```{r Step 6.6}
+# Check patch slms have deformed correctly on each specimen (this is time consuming but essential to check the deformation process). If there are placement errors, try increasing the inflate parameter, or repeat previous steps excluding problem specimens.
+checkLM(prod_patched, atlas=prod_atlas)
+#close3d()
+
+# Save the patched slm data
+save(prod_patched, file = "prod_patched.RData")
+
+## Dataset is ready for GM comparison of end-products. The next step is required to extract the product ventral for comparison with the final preferential scar on cores.
+```
+
+7.	**Product ventral outline:** A new array was created to hold reconfigured landmarks to outline the product ventral (“ventr_lm”) with dimensions 52 x 3 x 178. Landmarks from the “landmarks” array were reordered to match the pattern for core preferential scars, excluding the landmarks for the percussion point (1) and dorsal platform points (49-58). Semilandmarks were resampled and redistributed with equal spacing on all specimens (package: geomorph, function: digit.curves) in two curves formed of 30 outline and 5 platform points, with fixed points at either end of the platform, placed in a new array (“prod_ventr”). The resampled semilandmarks were then slid (relaxed) along the blank edge to mimimise the Procrustes distance across the dataset using the Procrustes consensus (mean shape) as a reference (package: Morpho, function: slider3d). Two fixed landmark points were defined (points 31 and 37), and two outlines formed by sliding points (1-30 (outline) and 32-36 (platform)). The new semilandmark points ($dataslide) were saved in the data array “prod_voutline”.
+
+```{r Step 6.7}
+# Create a new empty data array. The percussion point (1) and dorsal platform points (49-58) are not needed, reducing the number of lms to 52.
+ventr_lm <- array(NA, dim = c(52, 3, 178))
+
+# Reconfigure original product landmarks in the new array to only include the ventral outline and reordering them
+ventr_lm[1:40, , ] <- prod_landmarks[4:43, , ] # (outline)
+ventr_lm[41, , ] <- prod_landmarks[2, , ]   # (R platform end)
+ventr_lm[42:46, , ] <- prod_landmarks[59:63, , ]   # (platform ventr)
+ventr_lm[47:51, , ] <- prod_landmarks[44:48, , ]  # (platform ventr)
+ventr_lm[52, , ] <- prod_landmarks[3, , ] # (L platform end)
+
+# Create a new data array for resampled ventral outline semilandmarks (37 slms to match the core pref scar)
+prod_ventr <- array(0, dim=c(37,3,178))
+
+# Redistribute and resample equally-spaced semilandmarks on all specimens along two curves (5 platform and 30 edge points)
+for(i in 1:dim(ventr_lm)[3]) {
+  startA <- ventr_lm[52,,i]
+  startB <- ventr_lm[41,,i]
+  curveA <- digit.curves(startA,rbind(ventr_lm[1:40,,i], startB), nPoints = 30, closed = F)
+  curveB <- digit.curves(startB, rbind(ventr_lm[42:51,,i], startA), nPoints = 5, closed = F)
+  comb <- rbind(curveA[2:nrow(curveA),], curveB[2:nrow(curveB),])
+  prod_ventr[,,i] <- comb
+}
+
+# View equally spaced slms on mesh model
+shade3d(product1, color = "gray")
+spheres3d(prod_ventr[31,,3],col=1,radius=1)
+spheres3d(prod_ventr[37,,3],col=1,radius=1)
+spheres3d(prod_ventr[1:30,,3],col=3,radius=0.7)
+spheres3d(prod_ventr[32:36,,3],col=4,radius=0.7)
+#rgl.snapshot('prodventr_landmarks_example.png', fmt = 'png')
+close3d()
+
+# Define fixed LMs (that do not slide) and semilandmarks on outline curves to relax landmarks
+fixPv <- c(31,37)
+outlineA <- c(1:30)
+outlineB <- c(32:36)
+
+outlinesPv <- list(outlineA, outlineB)
+
+dimnames(prod_ventr)[[3]] <- names
+
+# Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
+slide_curvesPv <- slider3d(prod_ventr, SMvector = fixPv, deselect = TRUE, outlines = outlinesPv,
+                          sur.path = "Product_data", sur.type = "ply", iterations = 3)
+
+# View slid slms on mesh model
+shade3d(product1, color = "gray")
+spheres3d(slide_curvesPv$dataslide[fixPv,,3],col=4,radius=1)
+spheres3d(slide_curvesPv$dataslide[,,3],col=3,radius=0.7)
+close3d()
+
+# Rename and save
+prod_ventr <- slide_curvesPv$dataslide
+save(prod_ventr, file = "prod_ventr.RData")
+```
+
+8.	To prepare the data for comparative analysis, attributes (i.e. assemblage, dorsal scar pattern, platform type etc) were then imported and appended to each specimen by filename.
+
+```{r Step 6.8}
+# Import attribute data
+pts <- read.csv("File_list_prods.csv")
+pts <- dplyr::arrange(pts, File_name)
+Sample <- factor(pts$Assemblage)
+Platf_type <- factor(pts$Platf_type)
+Dist_term <- factor(pts$Dist_term)
+Flaking_axis <- factor(pts$Flaking_axis)
+Flake_scars <- factor(pts$Flake_scars)
+```
+
+------------------------------------------------------------------------
+
+## 7. Allometry analyses
+
+**Software:** R (R Core Team 2024)\
+**Packages:**\
+- geomorph (Baken et al. 2021; Adams et al. 2024) (v4.0.8)\
+- dplyr (Wickham et al. 2023) (v1.1.4)\
+- ggplot2 (Wickham 2016) (v3.5.1)
+
+```{r}
+# Ensure all required libraries are loaded
+library(geomorph)
+library(dplyr)
+library(ggplot2)
+```
+
+**Data:** R data files generated in the previous steps: “allpatched”, “alloutline”, “allprefs”.\
+
+```{r include=FALSE}
+knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
+```
+
+```{r}
+# If necessary, load R data files of core landmark configurations generated in Step 5:
+load("allpatched.RData")
+load("alloutline.RData")
+load("allprefs.RData")
+
+# Import the attribute data for cores and read attributes as Factors
+cores <- read.csv("File_list_cores.csv", header=TRUE, stringsAsFactors = TRUE)
+```
+
+**Method:** modified after Thulman et al. (2023)\
+
+1.	A Generalised Procrustes Analysis (GPA) was performed on the patched core surfaces (“allpatched”) (package: geomorph, function: gpagen). This generates the shape data for each specimen by translating all specimens to the same origin, scaling them to a standardised size (centroid size), and rotating them so that the landmark co-ordinates for each point correspond as closely as possible. The GPA output was then saved as a geomorph dataframe (.gdf), and attribute data appended as columns. A new column was created for the natural log of the centroid size (“Csize” calculated during the GPA) and added to the gdf.
+
+```{r Step 7.1}
+# Perform Generalised Procrustes Analysis (GPA)
+patched_gpa<-gpagen(allpatched, print.progress = FALSE)
+
+# Create a new geomorph dataframe (.gdf) from the GPA output
+allpatch.gdf <- geomorph.data.frame(patched_gpa)
+
+# Append the attribute/factor data to the gdf
+allpatch.gdf <- append(allpatch.gdf, cores)
+
+# Creates new column in the gdf with natural log of the centroid size
+allpatch.gdf$lnCS <- log(allpatch.gdf$Csize)
+```
+
+2.	Centroid sizes were extracted into a new table alongside core attribute data (package: dplyr, function: mutate). This was used to generate descriptive statistics for core surface centroid size (i.e. mean, minimum, maximum, sd, Coefficient of Variation (CV)), and a t-test conducted between mean centroid sizes for each region (function: t.test). Overall size differences were visualised in a boxplot of centroid size by assemblage (package: ggplot2). Descriptive statistics were also generated for preferential scars.
+
+```{r Step 7.2}
+# Create new table containing core attribute data and centroid size from the GPA data
+coresize <- mutate(cores, Csize = patched_gpa$Csize)
+
+# Summarise descriptive statistics (mean, min, max, sd, Coefficient of Variation (CV))
+Csize_stats_Assemblage <- coresize %>%
+  group_by(Assemblage) %>%
+  summarise(
+    mean_Csize = mean(Csize, na.rm = TRUE),
+    min_Csize = min(Csize, na.rm = TRUE),
+    max_Csize = max(Csize, na.rm = TRUE),
+    sd_Csize = sd(Csize, na.rm = TRUE),
+    CV_Csize = (sd_Csize / mean_Csize) * 100
+  )
+print(Csize_stats_Assemblage)
+
+Csize_stats_Area <- coresize %>%
+  group_by(Area) %>%
+  summarise(
+    mean_Csize = mean(Csize, na.rm = TRUE),
+    min_Csize = min(Csize, na.rm = TRUE),
+    max_Csize = max(Csize, na.rm = TRUE),
+    sd_Csize = sd(Csize, na.rm = TRUE),
+    CV_Csize = (sd_Csize / mean_Csize) * 100
+  )
+print(Csize_stats_Area)
+
+
+# T-test to compare centroid size for both regions
+t_testArea <- t.test(Csize ~ Area, data = coresize)
+print(t_testArea)
+
+
+# Plot centroid size boxplot by assemblage
+ggplot(coresize, aes(x = Assemblage, y = Csize, fill = Area)) +
+  geom_jitter(position = position_jitter (width = 0.4), size = 2, alpha = 0.6, aes(color = Area), show.legend = FALSE) +
+  geom_boxplot(show.legend = FALSE, alpha = 0.7) + 
+  labs(x = "Region", y = "Centroid size") +
+  scale_fill_manual(values = c(NK = "royalblue", TH = "indianred1")) +
+  scale_color_manual(values = c(NK = "royalblue", TH = "indianred1")) +
+  theme_minimal()
+
+
+# Create new table containing pref scar attribute data and centroid size from the GPA data
+pref_gpa<-gpagen(allprefs, print.progress = FALSE)
+prefsize <- mutate(cores, Csize = pref_gpa$Csize)
+
+# Summarise descriptive statistics (mean, min, max)
+Csize_pref_Assemblage <- prefsize %>%
+  group_by(Assemblage) %>%
+  summarise(
+    mean_Csize = mean(Csize, na.rm = TRUE),
+    min_Csize = min(Csize, na.rm = TRUE),
+    max_Csize = max(Csize, na.rm = TRUE),
+    sd_Csize = sd(Csize, na.rm = TRUE),
+    CV_Csize = (sd_Csize / mean_Csize) * 100
+  )
+print(Csize_pref_Assemblage)
+
+Csize_pref_Area <- prefsize %>%
+  group_by(Area) %>%
+  summarise(
+    mean_Csize = mean(Csize, na.rm = TRUE),
+    min_Csize = min(Csize, na.rm = TRUE),
+    max_Csize = max(Csize, na.rm = TRUE),
+    sd_Csize = sd(Csize, na.rm = TRUE),
+    CV_Csize = (sd_Csize / mean_Csize) * 100
+  )
+print(Csize_pref_Area)
+```
+
+3.	A Procrustes ANOVA (package: geomorph, function: procD.lm) was carried out, using the GPA to quantify shape variation between specimens. Aesthetics for subsequent plots were assigned to distinguish between Nazlet Khater (NK) and Dhofar (TH) sites, and the regression score was plotted against centroid size (package: geomorph, function: plotAllometry). The interactive ‘picknplot.shape’ function was used to view specific specimens (e.g. those with the highest and lowest regression scores) and capture images of these for use in composite figures alongside regression plots.
+
+```{r Step 7.3}
+# Perform Procrustes ANOVA to regress co-ordinates against log centroid size
+patchCS <- procD.lm(coords~ log(Csize), data=allpatch.gdf, iter=1000, RRPP=TRUE, print.progress = FALSE)
+
+# View ANOVA results
+summary(patchCS)
+
+# Define colors and shapes for NK and TH
+colsArea <- c("NK" = "royalblue", "TH" = "indianred1")
+shapesArea <- c("NK" = 16, "TH" = 17)
+
+# Assign colors and shapes based on Area in the .gdf
+allpatch.gdf$Area <- as.factor(allpatch.gdf$Area)
+color <- colsArea[allpatch.gdf$Area]
+shape <- shapesArea[allpatch.gdf$Area]
+
+# Plot regression score against centroid size (i.e. show allometry)
+RegPatch <- plotAllometry(patchCS, size=allpatch.gdf$Csize,  method = "RegScore", col=color, pch=shape, bg=allpatch.gdf$Area, xlab="Ln Core Surface Centroid Size")
+
+# Select specific data points to view deformation grid of corresponding specimens in rgl viewer. These can be output as .png
+#picknplot.shape(RegPatch)
+```
+
+4.	The GPA (7.1) and Procrustes ANOVA (7.3) steps were repeated for all core outlines (“alloutline”).
+
+```{r Step 7.4}
+# Perform GPA and create new geomorph dataframe with attribute and log centroid data
+outline_gpa <- gpagen(alloutline, print.progress = FALSE)
+alloutline.gdf <- geomorph.data.frame(outline_gpa)
+alloutline.gdf <- append(alloutline.gdf, cores)
+alloutline.gdf$lnCS <- log(alloutline.gdf$Csize)
+
+# Perform Procrustes ANOVA and generate plots for all core outlines
+outlineCS <- procD.lm(coords~ log(Csize), data=alloutline.gdf, iter=1000, RRPP=TRUE, print.progress = FALSE) 
+
+# View ANOVA results
+summary(outlineCS)
+
+# Assign colors and shapes based on Area in the .gdf
+alloutline.gdf$Area <- as.factor(alloutline.gdf$Area)
+color <- colsArea[alloutline.gdf$Area]
+shape <- shapesArea[alloutline.gdf$Area]
+
+# Plot Allometry
+RegOutline <- plotAllometry(outlineCS, size=alloutline.gdf$Csize,  method = "RegScore", col=color, pch=shape, bg=alloutline.gdf$Area, xlab="Ln Core Outline Centroid Size")
+
+# View specific specimens
+#picknplot.shape(RegOutline)
+```
+
+5.	The GPA (7.1) and Procrustes ANOVA (7.3) steps were repeated for all core preferential scars ("allprefs").
+
+```{r Step 7.5}
+# Perform GPA and create new geomorph dataframe with attribute and log centroid data
+pref_gpa <-gpagen(allprefs, print.progress = FALSE)
+allprefs.gdf <- geomorph.data.frame(pref_gpa)
+allprefs.gdf <- append(allprefs.gdf, cores)
+allprefs.gdf$lnCS <- log(allprefs.gdf$Csize)
+
+# Perform Procrustes ANOVA and generate plots for all core preferential scars
+prefCS <- procD.lm(coords~ log(Csize), data=allprefs.gdf, iter=1000, RRPP=TRUE, print.progress = FALSE)
+
+# View ANOVA results
+summary(prefCS)
+
+# Assign colors and shapes based on Area in the .gdf
+allprefs.gdf$Area <- as.factor(allprefs.gdf$Area)
+color <- colsArea[allprefs.gdf$Area]
+shape <- shapesArea[allprefs.gdf$Area]
+
+# Plot allometry
+RegPref <- plotAllometry(prefCS, size=allprefs.gdf$Csize,  method = "RegScore", col=color, pch=shape, bg=allprefs.gdf$Area, xlab="Ln Pref Scar Centroid Size")
+
+# View specific specimens
+#picknplot.shape(RegPref)
+```
+6.	*(Optional)* The plots of regression score against log centroid size were replotted in ggplot2 for more control of aesthetics (e.g. addition of a regression line). Note that geomorph v4 has a function to convert plots to ggplot objects where compatible.
+
+```{r Step 7.6a}
+# Core surfaces ("RegPatch")
+datapatch <- data.frame(lncsize = log(allpatch.gdf$Csize), regsc = RegPatch$RegScore)
+
+ggplot(datapatch, aes(x = lncsize, y = regsc)) +
+  geom_point(aes(col = allpatch.gdf$Area, shape = allpatch.gdf$Area)) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed", linewidth = 0.5, fullrange = TRUE) +
+  labs(x = "Ln Core Surface Centroid Size", y = "Regression Score", color = "Region", shape = "Region") +
+  scale_color_manual(values = colsArea) +
+  scale_shape_manual(values = shapesArea)+
+  geom_hline(yintercept = -0.25, linetype = "solid", color = "darkgrey") + # Horizontal axis line
+  geom_vline(xintercept = 5.5, linetype = "solid", color = "darkgrey") + # Vertical axis line
+  theme_minimal()+
+  ggtitle("Core surfaces: allometry plot")
+
+# Calculate slope of regression lines on plot
+regline <- lm(regsc ~ lncsize, data = datapatch)
+slope <- coefficients(regline)[2]
+print(slope)
+```
+
+```{r Step 7.6b}
+# Core outlines ("RegOutline")
+dataoutl <- data.frame(lncsize = log(alloutline.gdf$Csize), regsc = RegOutline$RegScore)
+
+ggplot(dataoutl, aes(x = lncsize, y = regsc)) +
+  geom_point(aes(col = allpatch.gdf$Area, shape = allpatch.gdf$Area)) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed", linewidth = 0.5, fullrange = TRUE) +
+  labs(x = "Ln Core Outline Centroid Size", y = "Regression Score", color = "Region", shape = "Region") +
+  scale_color_manual(values = colsArea) +
+  scale_shape_manual(values = shapesArea)+
+  geom_hline(yintercept = -0.2, linetype = "solid", color = "darkgrey") + # Horizontal axis line
+  geom_vline(xintercept = 4.5, linetype = "solid", color = "darkgrey") + # Vertical axis line
+  theme_minimal()+
+  ggtitle("Core outlines: allometry plot")
+
+# Calculate slope of regression lines on plot
+regline <- lm(regsc ~ lncsize, data = dataoutl)
+slope <- coefficients(regline)[2]
+print(slope)
+```
+
+```{r Step 7.6c}
+# Core pref scar ("RegPref")
+datapref <- data.frame(lncsize = log(allprefs.gdf$Csize), regsc = RegPref$RegScore)
+
+ggplot(datapref, aes(x = lncsize, y = regsc)) +
+  geom_point(aes(col = allpatch.gdf$Area, shape = allpatch.gdf$Area)) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed", linewidth = 0.5, fullrange = TRUE) +
+  labs(x = "Ln Pref Scar Centroid Size", y = "Regression Score", color = "Region", shape = "Region") +
+  scale_color_manual(values = colsArea) +
+  scale_shape_manual(values = shapesArea)+
+  geom_hline(yintercept = -0.4, linetype = "solid", color = "darkgrey") + # Horizontal axis line
+  geom_vline(xintercept = 4, linetype = "solid", color = "darkgrey") + # Vertical axis line
+  theme_minimal()+
+  ggtitle("Pref scars: allometry plot")
+
+# Calculate slope of regression lines on plot
+regline <- lm(regsc ~ lncsize, data = datapref)
+slope <- coefficients(regline)[2]
+print(slope)
+```
+
+7.	The GPA and Procrustes ANOVA were repeated for separated regional datasets in order to investigate the effect of region on allometry (“patchedNK”, “patchedTH”; “prefNK”, “prefTH”).
+
+```{r Step 7.7a}
+## -- CORE SURFACES --
+# Load NK and TH data
+load("patchedNK.RData")
+load("patchedTH.RData")
+
+# Perform Generalised Procrustes Analysis (GPA)
+patchedNK_gpa<-gpagen(patchedNK, print.progress = FALSE)
+patchedTH_gpa<-gpagen(patchedTH, print.progress = FALSE)
+
+# Create a new geomorph dataframe (.gdf) from the GPA output
+NKpatch.gdf <- geomorph.data.frame(patchedNK_gpa)
+THpatch.gdf <- geomorph.data.frame(patchedTH_gpa)
+
+# Perform Generalised Procrustes Analysis (GPA)
+prefNK_gpa<-gpagen(prefNK, print.progress = FALSE)
+prefTH_gpa<-gpagen(prefTH, print.progress = FALSE)
+
+# Perform Procrustes ANOVA for NK core surfaces
+NK_CS <- procD.lm(coords ~ log(Csize), data = NKpatch.gdf, iter = 1000, RRPP = TRUE, print.progress = FALSE)
+summary(NK_CS)
+
+# Perform Procrustes ANOVA for TH core surfaces
+TH_CS <- procD.lm(coords ~ log(Csize), data = THpatch.gdf, iter = 1000, RRPP = TRUE, print.progress = FALSE)
+summary(TH_CS)
+```
+
+```{r Step 7.7b}
+## -- PREF SCARS --
+# Load NK and TH data
+load("prefNK.RData")
+load("prefTH.RData")
+
+# Perform Generalised Procrustes Analysis (GPA)
+prefNK_gpa<-gpagen(prefNK, print.progress = FALSE)
+prefTH_gpa<-gpagen(prefTH, print.progress = FALSE)
+
+# Create a new geomorph dataframe (.gdf) from the GPA output
+NKpref.gdf <- geomorph.data.frame(prefNK_gpa)
+THpref.gdf <- geomorph.data.frame(prefTH_gpa)
+
+# Perform Procrustes ANOVA for NK preferential scars
+NKpr_CS <- procD.lm(coords ~ log(Csize), data = NKpref.gdf, iter = 1000, RRPP = TRUE, print.progress = FALSE)
+summary(NKpr_CS)
+
+# Perform Procrustes ANOVA for TH preferential scars
+THpr_CS <- procD.lm(coords ~ log(Csize), data = THpref.gdf, iter = 1000, RRPP = TRUE, print.progress = FALSE)
+summary(THpr_CS)
+```
+
+------------------------------------------------------------------------
+
+## 8. Geometric morphometric analyses
+
+**Software:** R (R Core Team 2024)\
+**Packages:**\
+- geomorph (Baken et al. 2021; Adams et al. 2024) (v4.0.8)\
+- Rvcg (Schlager 2017) (v0.23)\
+- ggplot2 (Wickham 2016) (v3.5.1)\
+- car (Fox & Weisberg 2019) (v3.1.2)
+
+```{r}
+# Ensure all required libraries are loaded
+library(geomorph)
+library(Rvcg)
+library(ggplot2)
+library(car)
+```
+
+**Data:** R data files generated in the previous steps: cores: “allpatched”, “alloutline”, “allprefs”; products: “prod_patched”, “prod_ventr”. Associated .csv files “core_links”, “pref_links”, “prod_links” and attribute data.
+
+```{r include=FALSE}
+knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
+```
+
+```{r}
+# If necessary, load R data files and attributes:
+load("allpatched.RData")
+load("alloutline.RData")
+load("allprefs.RData")
+cores <- read.csv("File_list_cores.csv")
+cores <- dplyr::arrange(cores, File_name)
+
+# Load product data (not used in Step 7)
+load("prod_patched.Rdata")
+load("prod_ventr.Rdata")
+prods <- read.csv("File_list_prods.csv")
+prods <- dplyr::arrange(prods, File_name)
+```
+
+**Method:**
+
+1.	A Generalised Procrustes Analysis (GPA) was performed on all imported core data (surface, outline and preferential scar) and NK products (surface, ventral outline) (package: geomorph, function: gpagen). This generates new Procrustes-aligned co-ordinates for all specimens.
+
+```{r Step 8.1}
+# GPA for cores already run in Step 7:
+#patched_gpa <- gpagen(allpatched,PrinAxes=TRUE)
+#outline_gpa <- gpagen(alloutline,PrinAxes=TRUE)
+#pref_gpa <- gpagen(allprefs,PrinAxes=TRUE)
+
+# Run GPA for products
+prod_gpa <- gpagen(prod_patched, PrinAxes=TRUE)
+prodv_gpa <- gpagen(prod_ventr, PrinAxes=TRUE)
+```
+
+2.	Outliers were identified as specimens with Procrustes distances exceeding 3 standard deviations of the mean shape (i.e. 99.7% of the variability). These specimens were removed from the non-aligned data (“allpatched”) and GPAs re-run on the filtered data, then PCA performed.
+
+```{r Step 8.2a}
+## -- CORE SURFACES --
+# Calculate Procrustes distances to the mean shape
+meansh <- mshape(patched_gpa$coords)
+proc_dist <- apply(patched_gpa$coords, 3, function(x) sqrt(sum((x - meansh)^2)))
+
+# Calculate the mean and standard deviation of the Procrustes distances
+mean_proc <- mean(proc_dist)
+sd_proc <- sd(proc_dist)
+
+# Define the threshold for outliers within 3 sd of the mean (i.e. 99.7% of the data)
+threshold_upper <- mean_proc + 3 * sd_proc
+threshold_lower <- mean_proc - 3 * sd_proc
+
+# Identify outliers
+outliers <- proc_dist < threshold_lower | proc_dist > threshold_upper
+
+# Display outlier specimens
+outlier_specs <- proc_dist[outliers]
+print(outlier_specs)
+
+# Exclude outliers from the patched core dataset and rerun GPA on new dataset
+outlier_specs <- c(70, 91, 72, 119) # identify corresponding specimen numbers from corelist
+all_specs <- 1:166
+keep <- setdiff(all_specs, outlier_specs)
+allpatched <- allpatched[, , keep]
+patched_gpa <- gpagen(allpatched,PrinAxes=TRUE) # check the new patched_gpa has 162 specimens
+```
+
+```{r Step 8.2b}
+## -- PREF SCAR OUTLINES --
+# Calculate Procrustes distances to the mean shape
+meansh <- mshape(pref_gpa$coords)
+proc_dist <- apply(pref_gpa$coords, 3, function(x) sqrt(sum((x - meansh)^2)))
+
+# Calculate the mean and standard deviation of the Procrustes distances
+mean_proc <- mean(proc_dist)
+sd_proc <- sd(proc_dist)
+
+# Define the threshold for outliers within 3 sd of the mean
+threshold_upper <- mean_proc + 3 * sd_proc
+threshold_lower <- mean_proc - 3 * sd_proc
+
+# Identify outliers
+outliers <- proc_dist < threshold_lower | proc_dist > threshold_upper
+
+# Display outlier specimens
+outlier_specs <- proc_dist[outliers]
+print(outlier_specs)
+
+# Exclude outliers from the pref scar dataset and rerun GPA on new dataset
+outlier_specs <- c(45) # identify corresponding specimen numbers from corelist
+all_specs <- 1:166
+keep <- setdiff(all_specs, outlier_specs)
+allprefs <- allprefs[, , keep]
+pref_gpa <- gpagen(allprefs,PrinAxes=TRUE) # check the new pref_gpa has 165 specimens
+
+# Exclude corresponding outliers from the core outline dataset (needed for 2BPLS between shapes on the same specimens) and rerun GPA on new dataset
+alloutline <- alloutline[, , keep]
+outline_gpa <- gpagen(alloutline,PrinAxes=TRUE) # check the new pref_gpa has 165 specimens
+```
+
+```{r Step 8.2c}
+## -- PRODUCT SURFACES --
+# Calculate Procrustes distances to the mean shape
+meansh <- mshape(prod_gpa$coords)
+proc_dist <- apply(prod_gpa$coords, 3, function(x) sqrt(sum((x - meansh)^2)))
+
+# Calculate the mean and standard deviation of the Procrustes distances
+mean_proc <- mean(proc_dist)
+sd_proc <- sd(proc_dist)
+
+# Define the threshold for outliers within 3 sd of the mean
+threshold_upper <- mean_proc + 3 * sd_proc
+threshold_lower <- mean_proc - 3 * sd_proc
+
+# Identify outliers
+outliers <- proc_dist < threshold_lower | proc_dist > threshold_upper
+
+# Display outlier specimens
+outlier_specs <- proc_dist[outliers]
+print(outlier_specs)
+
+# Exclude outliers from the patched product dataset and rerun GPA on new dataset
+outlier_specs <- c(8, 28, 96) # identify corresponding specimen numbers from prodlist
+all_specs <- 1:178
+keep <- setdiff(all_specs, outlier_specs)
+prod_patched <- prod_patched[, , keep]
+prod_gpa <- gpagen(prod_patched,PrinAxes=TRUE) # check the new prod_gpa has 175 specimens
+
+# Exclude the corresponding outliers from the product ventral dataset and rerun GPA on new dataset
+prod_ventr <- prod_ventr[, , keep]
+prodv_gpa <- gpagen(prod_ventr,PrinAxes=TRUE) # check the new prodv_gpa has 175 specimens
+```
+
+3.	A Principal Components Analysis (PCA) was carried out on the Procrustes co-ordinates for each of the GPA datasets (package: geomorph, function: gm.prcomp). The object generated contains the PC scores (x) which were extracted and saved in a new dataframe with attribute data for each specimen appended. The eigenvalues (d) were also extracted to a table to show the amount of variance each component accounts for in the dataset.
+
+```{r Step 8.3a}
+## -- CORE SURFACES --
+# Conduct PCA and extract PC scores to new dataframe
+PCA_allpatch <- gm.prcomp(patched_gpa$coords)
+PCscores_patch <- PCA_allpatch$x # x represents the PC scores
+coord_allpatch <- as.data.frame(PCscores_patch)
+
+# Specify outlier specimen names and exclude these specimens from the attribute dataset
+outlier_specs <- c("CoreME78.737b_LR", "CoreME78.959_LR", "CoreME78.747.78_LR", "TH.571-110_LR")
+cores_filtered <- cores[!cores$File_name %in% outlier_specs, ]
+
+# Append filtered core attribute data to the coord data
+coord_allpatch <- cbind(coord_allpatch, cores_filtered)
+
+# Generate variance tables that show the percentage of variation captured by each component
+eigenvalues <- PCA_allpatch$d # d represents the eigenvalues
+pc_numbers <- 1:length(eigenvalues)
+perc_variance <- (eigenvalues / sum(eigenvalues)) * 100
+cum_perc <- cumsum(perc_variance)
+perc_table_patch <- data.frame(PC = 1:length(eigenvalues), Eigenvalue = eigenvalues, PercVariance = perc_variance, CumulativePerc = cum_perc)
+```
+
+```{r Step 8.3b}
+## -- PREF SCAR OUTLINE --
+# Conduct PCA and extract PC scores to new dataframe
+PCA_allprefs <- gm.prcomp(pref_gpa$coords)
+PCscores_prefs <- PCA_allprefs$x
+coord_allprefs <- as.data.frame(PCscores_prefs)
+
+# Specify outliers and exclude these specimens from the attribute dataset
+outlier_specs <- c("CoreME78.627Ap_LR")
+cores_filtered <- cores[!cores$File_name %in% outlier_specs, ]
+
+# Append filtered core attribute data to the coord data
+coord_allprefs <- cbind(coord_allprefs, cores_filtered)
+
+# Generate variance tables that show the percentage of variation captured by each component
+eigenvalues <- PCA_allprefs$d
+pc_numbers <- 1:length(eigenvalues)
+perc_variance <- (eigenvalues / sum(eigenvalues)) * 100
+cum_perc <- cumsum(perc_variance)
+perc_table_pref <- data.frame(PC = 1:length(eigenvalues), Eigenvalue = eigenvalues, PercVariance = perc_variance, CumPercentage = cum_perc)
+```
+
+```{r Step 8.3c}
+## -- PRODUCT SURFACES --
+# Conduct PCA and extract PC scores to new dataframe
+PCA_prods <- gm.prcomp(prod_gpa$coords)
+PCscores_prods <- PCA_prods$x
+coord_prods <- as.data.frame(PCscores_prods)
+
+# Specify outliers and exclude these specimens from the attribute dataset
+outlier_specs <- c("PointME78.1049c_LR", "PointME78.369.8_LR", "PointME78.718p_LR")
+prods_filtered <- prods[!prods$File_name %in% outlier_specs, ]
+
+# Append filtered product attribute data to the coord data
+coord_prods <- cbind(coord_prods, prods_filtered)
+
+# Generate variance tables that show the percentage of variation captured by each component
+eigenvalues <- PCA_prods$d
+pc_numbers <- 1:length(eigenvalues)
+perc_variance <- (eigenvalues / sum(eigenvalues)) * 100
+cum_perc <- cumsum(perc_variance)
+perc_table_prods <- data.frame(PC = 1:length(eigenvalues), Eigenvalue = eigenvalues, PercVariance = perc_variance, CumPercentage = cum_perc)
+```
+
+4.	PCA plots of the PC values for the Procrustes co-ordinates of core surfaces were generated using ggplot2.
+
+```{r Step 8.4}
+# If not done in Step 7, set colour/shape aesthetics for the NK and TH samples for the plots
+colsArea <- c("NK" = "royalblue", "TH" = "indianred1")
+shapesArea <- c("NK" = 16, "TH" = 17)
+
+## -- CORE SURFACES --
+## Generate PCA plots (here with aesthetics set for area/region)
+#PC1 and 2
+coord_allpatch %>%
+  ggplot(aes(x = Comp1, y = Comp2, shape = Area)) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_point(aes(color = Area)) +
+  scale_color_manual(values = colsArea) +
+  scale_fill_manual(values = colsArea) +
+  stat_ellipse(geom = "polygon", aes(fill = Area), alpha = 0.2, show.legend = TRUE, level = 0.95) +
+  labs(shape = "Region", color = "Region", fill = "Region") +
+  labs(x = "PC1", y = "PC2") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  ggtitle("Core surfaces: PCA (PC1-PC2)")
+
+#PC3 and 4
+coord_allpatch %>%
+  ggplot(aes(x = Comp3, y = Comp4, shape = Area)) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_point(aes(color = Area)) +
+  scale_color_manual(values = colsArea) +
+  scale_fill_manual(values = colsArea) +
+  stat_ellipse(geom = "polygon", aes(fill = Area), alpha = 0.2, show.legend = TRUE, level = 0.95) +
+  labs(shape = "Region", color = "Region", fill = "Region") +
+  labs(x = "PC3", y = "PC4") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  ggtitle("Core surfaces: PCA (PC3-PC4)")
+
+#PC5 and 6
+coord_allpatch %>%
+  ggplot(aes(x = Comp5, y = Comp6, shape = Area)) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2) +
+  geom_point(aes(color = Area)) +
+  scale_color_manual(values = colsArea) +
+  scale_fill_manual(values = colsArea) +
+  stat_ellipse(geom = "polygon", aes(fill = Area), alpha = 0.2, show.legend = TRUE, level = 0.95) +
+  labs(shape = "Region", color = "Region", fill = "Region") +
+  labs(x = "PC5", y = "PC6") +
+  theme_minimal() +
+  theme(legend.position = "right")+
+  ggtitle("Core surfaces: PCA (PC5-PC6)")
+
+# Generate PCA plots with aesthetics for Type and Assemblage (see supplementary script 8A)
+```
+
+5.	Several additional steps were undertaken (using functions in geomorph) to identify and visualise landmark configurations and specimens representing the mean, minimum and maximum shapes for each component. These were captured as images and presented in the composite figures alongside PC plots. The theoretical mean shape was found from the Procrustes co-ordinates (mshape) and the core outline represented by ‘linking’ (i.e. drawing a line between) consecutive landmarks. This can be done manually by selecting points in a pop-out window (define.links) or loaded in a predetermined .csv (“core_links.csv”). The actual specimen corresponding most closely to the mean shape was also identified (findMeanSpec). A looped process was used to visualise the minimum and maximum theoretical shapes for each PC (based on Procrustes co-ordinate configurations) in relation to the mean shape (plotRefToTarget) and saved as images in separate orientations.
+
+```{r Step 8.5a}
+## -- CORE SURFACES --
+# Find the theoretical mean shape
+msh_patch <- mshape(patched_gpa$coords)
+
+# Create an outline by linking consecutive slms of the shape
+#define.links(msh_patch, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
+core_links <- read.csv("Core_links.csv")
+
+# Identify the specimen that most closely matches the theoretical mean shape
+findMeanSpec(patched_gpa$coords)
+#CoreME78.789.41_LR 
+#Specimen 83
+```
+
+```{r Step 8.5b}
+# Define a function to generate and save min./max. shape snapshots for a given PC
+GeneratePCShapes <- function(pc_num) {
+  # Mean shape (grey) and minimum shape (blue)
+  plotRefToTarget(msh_patch, PCA_allpatch$shapes[[paste0("shapes.comp", pc_num)]]$min,
+                  method = "points", links = core_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "blue", tar.pt.size = 0.7,
+                  tar.link.col = "blue", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("PC", pc_num, "_min_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("PC", pc_num, "_min.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("PC", pc_num, "_min_dist.png"), fmt = 'png')
+  
+  # Mean shape (grey) and maximum shape (red)
+  plotRefToTarget(msh_patch, PCA_allpatch$shapes[[paste0("shapes.comp", pc_num)]]$max,
+                  method = "points", links = core_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "red", tar.pt.size = 0.7,
+                  tar.link.col = "red", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("PC", pc_num, "_max_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("PC", pc_num, "_max.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("PC", pc_num, "_max_dist.png"), fmt = 'png')
+}
+
+# Loop through PCs 1 to 6 (or desired number of PCs)
+for (pc in 1:6) {
+  GeneratePCShapes(pc)
+}
+```
+
+```{r Step 8.5c}
+# Identify the specimens corresponding to the minimum and maximum shapes
+# Create a new dataframe to hold the extracted specimen information
+Specs <- data.frame(PC = character(), MinSp = character(), MaxSp = character(), stringsAsFactors = FALSE)
+
+# Identify specimen names in coord_allpatch dataframe
+coord_allpatch <- data.frame(
+  Specimen = rownames(coord_allpatch),
+  coord_allpatch,
+  stringsAsFactors = FALSE)
+
+# Extract specimen names that correspond to min. and max. value for first 6 PCs
+for (i in 1:6) {
+  pc_name <- paste0("Comp", i)
+  min_specimen <- coord_allpatch$Specimen[which.min(coord_allpatch[[pc_name]])]
+  max_specimen <- coord_allpatch$Specimen[which.max(coord_allpatch[[pc_name]])]
+  Specs <- rbind(Specs, data.frame(PC = pc_name, MinSp = min_specimen, MaxSp = max_specimen, stringsAsFactors = FALSE))
+}
+print(Specs)
+```
+
+```{r Step 8.5d}
+# Refer to specimens in the table to identify the correct mesh and outline slms (get specimen number from corelist) and output views for min. and max. specimens
+# Example for PC1 minimum specimen
+corePC1min <- vcgImport(file.path(core_data, "TH.571-130_LR.ply"))
+shade3d(corePC1min, color = "gray")
+spheres3d(alloutline[1:2,,130], color = "black", radius = 0.7)
+spheres3d(alloutline[3,,130], color = "grey40", radius = 0.7)
+spheres3d(alloutline[4:39,,130], color = "blue", radius = 0.5)
+#spheres3d(allpatched[,,130], color = "blue", radius = 0.4) # view surface slm configuration
+
+# Manually reorient and save outputs
+rgl.snapshot('PC1sp_min.png', fmt = 'png')
+rgl.snapshot('PC1sp_min_profile.png', fmt = 'png')
+rgl.snapshot('PC1sp_min_dist.png', fmt = 'png')
+
+# Example for PC1 maximum specimen
+corePC1max <- vcgImport(file.path(core_data, "CoreME78.987c_LR.ply"))
+shade3d(corePC1max, color = "gray")
+spheres3d(alloutline[1:2,,93], color = "black", radius = 0.7)
+spheres3d(alloutline[3,,93], color = "grey40", radius = 0.7)
+spheres3d(alloutline[4:39,,93], color = "red", radius = 0.5)
+#spheres3d(allpatched[,,93], color = "red", radius = 0.4) # view surface slm configuration
+
+# Manually reorient and save outputs
+rgl.snapshot('PC1sp_max.png', fmt = 'png')
+rgl.snapshot('PC1sp_max_profile.png', fmt = 'png')
+rgl.snapshot('PC1sp_max_dist.png', fmt = 'png')
+
+## Repeat for other PCs
+```
+
+6. The shape visualisation steps (6.5) for each PC were repeated for core preferential scar outlines.
+
+```{r Step 8.6a}
+## -- PREF SCAR --
+# Find the theoretical mean shape
+msh_pref <- mshape(pref_gpa$coords)
+
+# Create an outline by linking consecutive slms of the shape
+#define.links(msh_pref, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
+pref_links <- read.csv("Pref_links.csv")
+
+# Identify the specimen that most closely matches the theoretical mean shape
+findMeanSpec(pref_gpa$coords)
+#CoreME80.4.42b_LR 
+#Specimen 106
+```
+
+```{r Step 8.6b}
+# Define a function to generate and save min./max. shape snapshots for a given PC
+GeneratePCShapes <- function(pc_num) {
+  # Mean shape (grey) and minimum shape (blue)
+  plotRefToTarget(msh_pref, PCA_allprefs$shapes[[paste0("shapes.comp", pc_num)]]$min,
+                  method = "points", links = pref_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "blue", tar.pt.size = 0.7,
+                  tar.link.col = "blue", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Pref_PC", pc_num, "_min_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Pref_PC", pc_num, "_min.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Pref_PC", pc_num, "_min_dist.png"), fmt = 'png')
+  
+  # Mean shape (grey) and maximum shape (red)
+  plotRefToTarget(msh_pref, PCA_allprefs$shapes[[paste0("shapes.comp", pc_num)]]$max,
+                  method = "points", links = pref_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "red", tar.pt.size = 0.7,
+                  tar.link.col = "red", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Pref_PC", pc_num, "_max_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Pref_PC", pc_num, "_max.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Pref_PC", pc_num, "_max_dist.png"), fmt = 'png')
+}
+
+# Loop through PCs 1 to 6 (or desired number of PCs)
+for (pc in 1:6) {
+  GeneratePCShapes(pc)
+}
+```
+
+```{r Step 8.6c}
+# Identify the specimens corresponding to the minimum and maximum shapes
+# Create a new dataframe to hold the extracted specimen information
+PrefSpecs <- data.frame(PC = character(), MinSp = character(), MaxSp = character(), stringsAsFactors = FALSE)
+
+# Identify specimen names in coord_allpatch dataframe
+coord_allprefs <- data.frame(
+  Specimen = rownames(coord_allprefs),
+  coord_allprefs,
+  stringsAsFactors = FALSE)
+
+# Extract specimen names that correspond to min. and max. value for first 6 PCs
+for (i in 1:6) {
+  pc_name <- paste0("Comp", i)
+  min_specimen <- coord_allprefs$Specimen[which.min(coord_allprefs[[pc_name]])]
+  max_specimen <- coord_allprefs$Specimen[which.max(coord_allprefs[[pc_name]])]
+  PrefSpecs <- rbind(PrefSpecs, data.frame(PC = pc_name, MinSp = min_specimen, MaxSp = max_specimen, stringsAsFactors = FALSE))
+}
+print(PrefSpecs)
+```
+
+```{r Step 8.6d}
+# Refer to specimens in the table to identify the correct mesh and outline slms (get specimen number from corelist) and output views for min. and max. specimens
+# Example for PC1 minimum specimen
+prefPC1min <- vcgImport(file.path(core_data, "TH.584-Gu5_LR.ply"))
+shade3d(prefPC1min, color = "gray")
+spheres3d(allprefs[31,,163], color = "black", radius = 0.7)
+spheres3d(allprefs[37,,163], color = "black", radius = 0.7)
+spheres3d(allprefs[1:30,,163], color = "blue", radius = 0.5)
+spheres3d(allprefs[32:36,,163], color = "blue", radius = 0.5)
+
+# Manually reorient and save outputs
+rgl.snapshot('PrefPC1sp_min.png', fmt = 'png')
+rgl.snapshot('PrefPC1sp_min_profile.png', fmt = 'png')
+rgl.snapshot('PrefPC1sp_min_dist.png', fmt = 'png')
+
+
+# Example for PC1 maximum specimen
+prefPC1max <- vcgImport(file.path(core_data, "CoreME78.787e_LR.ply"))
+shade3d(prefPC1max, color = "gray")
+spheres3d(allprefs[31,,82], color = "black", radius = 0.7)
+spheres3d(allprefs[37,,82], color = "black", radius = 0.7)
+spheres3d(allprefs[1:30,,82], color = "red", radius = 0.5)
+spheres3d(allprefs[32:36,,82], color = "red", radius = 0.5)
+
+# Manually reorient and save outputs
+rgl.snapshot('PrefPC1sp_max.png', fmt = 'png')
+rgl.snapshot('PrefPC1sp_max_profile.png', fmt = 'png')
+rgl.snapshot('PrefPC1sp_max_dist.png', fmt = 'png')
+
+## Repeat for other PCs.
+
+## Generate PCA plots for core pref scar (see supplementary script 8A)
+```
+
+7. The shape visualisation steps (6.5) for each PC were repeated for NK product surfaces.
+
+```{r Step 8.7a}
+## -- PRODUCT SURFACES --
+# Find the theoretical mean shape
+msh_prod <- mshape(prod_gpa$coords)
+
+# Create an outline by linking consecutive slms of the shape
+#define.links(msh_prod, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
+prod_links <- read.csv("Prod_links.csv")
+
+# Identify the specimen that most closely matches the theoretical mean shape
+
+findMeanSpec(prod_gpa$coords)
+#PointME78.578.3_LR
+#Specimen 54
+```
+
+```{r Step 8.7b}
+# Define a function to generate and save min./max. shape snapshots for a given PC
+GeneratePCShapes <- function(pc_num) {
+  # Mean shape (grey) and minimum shape (blue)
+  plotRefToTarget(msh_prod, PCA_prods$shapes[[paste0("shapes.comp", pc_num)]]$min,
+                  method = "points", links = prod_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "blue", tar.pt.size = 0.7,
+                  tar.link.col = "blue", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prod_PC", pc_num, "_min_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prod_PC", pc_num, "_min.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prod_PC", pc_num, "_min_dist.png"), fmt = 'png')
+  
+  # Mean shape (grey) and maximum shape (red)
+  plotRefToTarget(msh_prod, PCA_prods$shapes[[paste0("shapes.comp", pc_num)]]$max,
+                  method = "points", links = prod_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "red", tar.pt.size = 0.7,
+                  tar.link.col = "red", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prod_PC", pc_num, "_max_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prod_PC", pc_num, "_max.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prod_PC", pc_num, "_max_dist.png"), fmt = 'png')
+}
+
+# Loop through PCs 1 to 6 (or desired number of PCs)
+for (pc in 1:6) {
+  GeneratePCShapes(pc)
+}
+```
+
+```{r Step 8.7c}
+# Identify the specimens corresponding to the minimum and maximum shapes
+# Create a new dataframe to hold the extracted specimen information
+ProdSpecs <- data.frame(PC = character(), MinSp = character(), MaxSp = character(), stringsAsFactors = FALSE)
+
+# Identify specimen names in coord_allpatch dataframe
+coord_prods <- data.frame(
+  Specimen = rownames(coord_prods),
+  coord_prods,
+  stringsAsFactors = FALSE)
+
+# Extract specimen names that correspond to min. and max. value for first 6 PCs
+for (i in 1:6) {
+  pc_name <- paste0("Comp", i)
+  min_specimen <- coord_prods$Specimen[which.min(coord_prods[[pc_name]])]
+  max_specimen <- coord_prods$Specimen[which.max(coord_prods[[pc_name]])]
+  ProdSpecs <- rbind(ProdSpecs, data.frame(PC = pc_name, MinSp = min_specimen, MaxSp = max_specimen, stringsAsFactors = FALSE))
+}
+print(ProdSpecs)
+```
+
+```{r Step 8.7d}
+# Refer to specimens in the table to identify the correct mesh and outline slms (get specimen number from corelist) and output views for min. and max. specimens
+# Example for PC1 minimum specimen
+prodPC1min <- vcgImport(file.path(Product_data,"PointME78.589_LR.ply"))
+shade3d(prodPC1min, color = "gray")
+spheres3d(prod_ventr[31,,58], color = "black", radius = 0.7)
+spheres3d(prod_ventr[37,,58], color = "black", radius = 0.7)
+spheres3d(prod_ventr[1:30,,58], color = "blue", radius = 0.5)
+spheres3d(prod_ventr[32:36,,58], color = "blue", radius = 0.5)
+
+# Manually reorient and save outputs
+rgl.snapshot('ProdPC1sp_min.png', fmt = 'png')
+rgl.snapshot('ProdPC1sp_min_profile.png', fmt = 'png')
+rgl.snapshot('ProdPC1sp_min_dist.png', fmt = 'png')
+
+
+# Example for PC1 maximum specimen
+prodPC1max <- vcgImport(file.path(Product_data,"PointME80.4.31c_LR.ply"))
+shade3d(prodPC1max, color = "gray")
+spheres3d(prod_ventr[31,,166], color = "black", radius = 0.7)
+spheres3d(prod_ventr[37,,166], color = "black", radius = 0.7)
+spheres3d(prod_ventr[1:30,,166], color = "red", radius = 0.5)
+spheres3d(prod_ventr[32:36,,166], color = "red", radius = 0.5)
+
+# Manually reorient and save outputs
+rgl.snapshot('ProdPC1sp_max.png', fmt = 'png')
+rgl.snapshot('ProdPC1sp_max_profile.png', fmt = 'png')
+rgl.snapshot('ProdPC1sp_max_dist.png', fmt = 'png')
+
+## Repeat for other PCs
+
+## Generate PCA plots for NK products (see supplementary script 8A)
+```
+
+```{r Step 8.7e}
+## -- PREF SCAR AND PROD VENTRAL --
+# Combine pref scar and product ventral outline coordinates into a single array
+NKprefs <- allprefs[ , , 1:114]
+prod_scar <- array(c(prod_ventr, NKprefs), dim = c(37, 3, 289))
+dimnames(prod_scar) <- list(NULL, NULL, c(dimnames(prod_ventr)[[3]], dimnames(NKprefs)[[3]]))
+
+# Conduct GPA
+prod_scar_gpa <- gpagen(prod_scar,PrinAxes=TRUE)
+
+# Conduct PCA and extract PC scores to new dataframe
+PCA_prod_scar <- gm.prcomp(prod_scar_gpa$coords)
+PCscores_prod_scar <- PCA_prod_scar$x # x represents the PC scores
+coord_prod_scar <- as.data.frame(PCscores_prod_scar)
+coord_prod_scar$File_name <- rownames(coord_prod_scar)
+
+# Import the combined attribute data (outliers are excluded) and set factors
+pref_prod <- read.csv("Pref_prod_list.csv")
+pref_prod <- dplyr::arrange(pref_prod, File_name)
+Assemblage <- factor(pref_prod$Assemblage)
+Type <- factor(pref_prod$Artefact)
+Scars <- factor(pref_prod$Scars)
+
+# Join attribute data to PC scores
+coord_prod_scar <- merge(coord_prod_scar, pref_prod, by = "File_name", all.x = TRUE)
+
+# Generate variance tables that show the percentage of variation captured by each component
+eigenvalues <- PCA_prod_scar$d
+pc_numbers <- 1:length(eigenvalues)
+perc_variance <- (eigenvalues / sum(eigenvalues)) * 100
+cum_perc <- cumsum(perc_variance)
+perc_table_prod_scar <- data.frame(PC = 1:length(eigenvalues), Eigenvalue = eigenvalues, PercVariance = perc_variance, CumPercentage = cum_perc)
+```
+
+```{r Step 8.7f}
+# Identify mean shape
+mshape_prodscar <- mshape(prod_scar_gpa$coords)
+
+# Define a function to generate and save min./max. shape snapshots for a given PC
+GeneratePCShapes <- function(pc_num) {
+  # Mean shape (grey) and minimum shape (blue)
+  plotRefToTarget(mshape_prodscar, PCA_prod_scar$shapes[[paste0("shapes.comp", pc_num)]]$min,
+                  method = "points", links = pref_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "blue", tar.pt.size = 0.7,
+                  tar.link.col = "blue", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prodscar", pc_num, "_min_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prodscar", pc_num, "_min.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prodscar", pc_num, "_min_dist.png"), fmt = 'png')
+  
+  # Mean shape (grey) and maximum shape (red)
+  plotRefToTarget(mshape_prodscar, PCA_prod_scar$shapes[[paste0("shapes.comp", pc_num)]]$max,
+                  method = "points", links = pref_links,
+                  gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
+                  tar.pt.bg = "red", tar.pt.size = 0.7,
+                  tar.link.col = "red", tar.link.lwd = 2))
+  
+  # Save output in multiple orientations
+  view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prodscar", pc_num, "_max_profile.png"), fmt = 'png')
+  view3d(theta = 180, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prodscar", pc_num, "_max.png"), fmt = 'png')
+  view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
+  rgl.snapshot(paste0("Prodscar", pc_num, "_max_dist.png"), fmt = 'png')
+}
+
+# Loop through PCs 1 to 4
+for (pc in 1:4) {
+  GeneratePCShapes(pc)
+}
+```
+
+```{r Step 8.7g}
+# Identify the specimens corresponding to the minimum and maximum shapes
+# Create a new dataframe
+PrefSpecs <- data.frame(PC = character(), MinSp = character(), MaxSp = character(), stringsAsFactors = FALSE)
+
+# Extract specimen names that correspond to min. and max. value for first 6 PCs
+for (i in 1:4) {
+  pc_name <- paste0("Comp", i)
+  min_specimen <- coord_prod_scar$File_name[which.min(coord_prod_scar[[pc_name]])]
+  max_specimen <- coord_prod_scar$File_name[which.max(coord_prod_scar[[pc_name]])]
+  PrefSpecs <- rbind(PrefSpecs, data.frame(PC = pc_name, MinSp = min_specimen, MaxSp = max_specimen, stringsAsFactors = FALSE))
+}
+print(PrefSpecs)
+
+## Generate PCA plots for NK pref scars and products (see supplementary script 8A)
+```
+
+8.	ANOVAs were carried out to examine relationships within groups of variables (package: car, function: aov) with Tukey post-hoc tests to identify significant pairwise differences between group means (function: TukeyHSD).
+
+```{r Step 8.8a}
+## -- CORE SURFACES --
+# Define list of PCs and categorical variables
+pcs <- paste0("Comp", 1:6)
+variables <- c("Area", "Type", "Assemblage", "Preparation")
+AnovaTukey <- function(var) {
+  for (pc in pcs) {
+    formula <- as.formula(paste(pc, "~", var))
+    aov_model <- aov(formula, data = coord_allpatch)
+    anova_result <- Anova(aov_model, type = "III")
+    print(anova_result)
+    if (length(unique(coord_allpatch[[var]])) > 2) {
+      tukey_result <- TukeyHSD(aov_model)
+      print(tukey_result)
+      }}}
+
+# Perform ANOVA with post-hoc test on each category
+AnovaTukey("Area")
+AnovaTukey("Assemblage")
+AnovaTukey("Type")
+AnovaTukey("Preparation")
+
+# Perform MANOVA for PC3 with Type and area/region as interaction
+manova_pc3 <- aov(Comp3 ~ Type * Area, data = coord_allpatch)
+summary(manova_pc3)
+```
+
+```{r Step 8.8b}
+## -- PREF SCARS --
+# Define list of PCs and categorical variables
+pcs <- paste0("Comp", 1:4)
+variables <- c("Area", "Type", "Assemblage", "Preparation")
+
+## Function to perform ANOVA and Tukey post-hoc tests on each PC (1-4)
+AnovaTukey <- function(var) {
+  for (pc in pcs) {
+    formula <- as.formula(paste(pc, "~", var))
+    aov_model <- aov(formula, data = coord_allprefs)
+    anova_result <- Anova(aov_model, type = "III")
+    print(anova_result)
+    if (length(unique(coord_allprefs[[var]])) > 2) {
+      tukey_result <- TukeyHSD(aov_model)
+      print(tukey_result)
+    }}}
+
+# Perform ANOVA with post-hoc test on each category
+AnovaTukey("Area")
+AnovaTukey("Assemblage")
+AnovaTukey("Type")
+AnovaTukey("Preparation")
+
+# Perform MANOVA for PC1 with Type and area/region as interaction
+manova_pc1 <- aov(Comp1 ~ Type * Area, data = coord_allprefs)
+summary(manova_pc1)
+```
+
+```{r Step 8.8c}
+## -- PRODUCTS --
+# Define list of PCs and categorical variables
+pcs <- paste0("Comp", 1:6)
+variables <- c("Assemblage", "Flake_scars")
+
+## Function to perform ANOVA and Tukey post-hoc tests on each PC (1-4)
+AnovaTukey <- function(var) {
+  for (pc in pcs) {
+    formula <- as.formula(paste(pc, "~", var))
+    aov_model <- aov(formula, data = coord_prods)
+    anova_result <- Anova(aov_model, type = "III")
+    print(anova_result)
+    if (length(unique(coord_prods[[var]])) > 2) {
+      tukey_result <- TukeyHSD(aov_model)
+      print(tukey_result)
+    }}}
+
+# Perform ANOVA with post-hoc test on each category
+AnovaTukey("Assemblage")
+AnovaTukey("Flake_scars")
+```
+
+```{r Step 8.8d}
+## -- PREF SCAR AND PRODUCT VENTRAL --
+## Function to perform ANOVA and Tukey post-hoc tests on each PC for prefs and prod scars
+# Define list of PCs and categorical variables
+pcs <- paste0("Comp", 1:4)
+variables <- c("Artefact", "Scars", "Assemblage")
+
+AnovaTukey <- function(var) {
+  for (pc in pcs) {
+    formula <- as.formula(paste(pc, "~", var))
+    aov_model <- aov(formula, data = coord_prod_scar)
+    anova_result <- Anova(aov_model, type = "III")
+    print(anova_result)
+    if (length(unique(coord_prod_scar[[var]])) > 2) {
+      tukey_result <- TukeyHSD(aov_model)
+      print(tukey_result)
+    }}}
+
+# Perform ANOVA with post-hoc test on each category
+AnovaTukey("Artefact")
+AnovaTukey("Scars")
+AnovaTukey("Assemblage")
+
+# Perform MANOVA for PC1 and PC3 with assemblage and artefact as interaction
+manova_pc1 <- aov(Comp1 ~ Assemblage * Artefact, data = coord_prod_scar)
+summary(manova_pc1)
+
+manova_pc3 <- aov(Comp3 ~ Assemblage * Artefact, data = coord_prod_scar)
+summary(manova_pc3)
+```
+9.  A two-block partial least squares analysis was used to compare covariation between core outline (Block 1) and preferential scar shape (Block 2) (package: geomorph, function: two.b.pls). This was carried out on the entire core sample, and then separately by region and core type to explore within-group patterning. A linear regression analysis of PLS scores was used to assess model fit on the first dimension and visualised in a regression plot.
+
+```{r Step 8.9a}
+# Ensure the core names and core outline/pref specimens match
+outlier_spec <- c("CoreME78.627Ap_LR") # this was isolated as an outlier
+cores_filtered <- cores[!cores$File_name %in% outlier_spec, ]
+specimen_names <- dimnames(alloutline)[[3]]
+
+# Create groups for separate analysis and extract specimens based on Area
+NKspecs <- cores_filtered$File_name[cores_filtered$Area == "NK"]
+THspecs <- cores_filtered$File_name[cores_filtered$Area == "TH"]
+
+NKoutline <- alloutline[,,specimen_names %in% NKspecs]
+THoutline <- alloutline[,,specimen_names %in% THspecs]
+NKprefs <- allprefs[,,specimen_names %in% NKspecs]
+THprefs <- allprefs[,,specimen_names %in% THspecs]
+
+# Create groups for separate analysis and extract specimens based on Type
+T1specs <- cores_filtered$File_name[cores_filtered$Type == "T1"]
+T2specs <- cores_filtered$File_name[cores_filtered$Type == "T2"]
+T12specs <- cores_filtered$File_name[cores_filtered$Type == "T1/2"]
+
+T1outline <- alloutline[,,specimen_names %in% T1specs]
+T2outline <- alloutline[,,specimen_names %in% T2specs]
+T12outline <- alloutline[,,specimen_names %in% T12specs]
+T1prefs <- allprefs[,,specimen_names %in% T1specs]
+T2prefs <- allprefs[,,specimen_names %in% T2specs]
+T12prefs <- allprefs[,,specimen_names %in% T12specs]
+```
+
+```{r Step 8.9b}
+# Conduct GPA and 2B PLS on the sets of shapes for all specimens
+PLS_all <-two.b.pls(outline_gpa$coords, pref_gpa$coords,iter=999)
+summary(PLS_all)
+
+# Calculate the percentage of covariation
+PLS_all_cov <- (PLS_all$svd$d[1]^2 / sum(PLS_all$svd$d^2)) * 100
+print(PLS_all_cov)
+
+# Extract PLS scores
+PLS_all_Xscores <- PLS_all$XScores[, 1]  # Scores for Block 1 (outline)
+PLS_all_Yscores <- PLS_all$YScores[, 1]  # Scores for Block 2 (preferential scar shape)
+
+# Conduct linear regression analysis on PLS scores
+lmPLS_all <- lm(PLS_all_Xscores ~ PLS_all_Yscores)
+summary(lmPLS_all)
+
+# Create a new data frame for PLS scores with specimen names and attributes
+PLS_all_XY <- data.frame(Specimen = specimen_names, Xscores = PLS_all_Xscores, Yscores = PLS_all_Yscores)
+PLS_all_XY <- merge(PLS_all_XY, cores_filtered, by.x = "Specimen", by.y = "File_name")
+
+# Plot X and Y scores by region and add regression line
+ggplot(data = PLS_all_XY, aes(x = PLS_all_Xscores, y = PLS_all_Yscores)) +
+  geom_point(aes(color = Area, shape = Area), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = Area), linetype = "dashed", linewidth = 0.7, fullrange = TRUE) +
+  ggtitle("All cores: 2B PLS") +
+  labs(x = "Block 1/Core outline", y = "Block 2/Pref. scar") +
+  theme_minimal() +
+  scale_color_manual(values = colsArea) +
+  scale_shape_manual(values = shapesArea) +
+  geom_hline(yintercept = -0.4, linetype = "solid", color = "darkgrey") + # Horizontal axis line
+  geom_vline(xintercept = -0.2, linetype = "solid", color = "darkgrey") + # Vertical axis line
+  theme(legend.position = "bottom")
+
+# Plot X and Y scores by core type and add regression line
+colsType <- c("T1" = "#FC8D62", "T2" = "#66C2A5", "T1/2" = "#8DA0CB")
+
+ggplot(data = PLS_all_XY, aes(x = PLS_all_Xscores, y = PLS_all_Yscores)) +
+  geom_point(aes(color = Type, shape = Area), size = 2) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = Type), linetype = "dashed", linewidth = 0.7, fullrange = TRUE) +
+  ggtitle("All cores: 2B PLS") +
+  labs(x = "Block 1/Core outline", y = "Block 2/Pref. scar") +
+  theme_minimal() +
+  scale_color_manual(values = colsType) +
+  scale_shape_manual(values = shapesArea) +
+  geom_hline(yintercept = -0.4, linetype = "solid", color = "darkgrey") + # Horizontal axis line
+  geom_vline(xintercept = -0.2, linetype = "solid", color = "darkgrey") + # Vertical axis line
+  theme(legend.position = "bottom")
+```
+
+```{r Step 8.9c}
+# Repeat analysis for sub-groups
+# NK
+gpaNKoutline <- gpagen(NKoutline,PrinAxes=TRUE)
+gpaNKprefs <- gpagen(NKprefs,PrinAxes=TRUE)
+
+PLS_NK <-two.b.pls(gpaNKoutline$coords, gpaNKprefs$coords,iter=999)
+summary(PLS_NK)
+PLS_NK_cov <- (PLS_NK$svd$d[1]^2 / sum(PLS_NK$svd$d^2)) * 100
+print(PLS_NK_cov)
+
+PLS_NK_Xscores <- PLS_NK$XScores[, 1]
+PLS_NK_Yscores <- PLS_NK$YScores[, 1]
+
+lmPLS_NK <- lm(PLS_NK_Xscores ~ PLS_NK_Yscores)
+summary(lmPLS_NK)
+```
+
+```{r Step 8.9d}
+# TH
+gpaTHoutline <- gpagen(THoutline,PrinAxes=TRUE)
+gpaTHprefs <- gpagen(THprefs,PrinAxes=TRUE)
+
+PLS_TH <-two.b.pls(gpaTHoutline$coords, gpaTHprefs$coords,iter=999)
+summary(PLS_TH)
+PLS_TH_cov <- (PLS_TH$svd$d[1]^2 / sum(PLS_TH$svd$d^2)) * 100
+print(PLS_TH_cov)
+
+PLS_TH_Xscores <- PLS_TH$XScores[, 1]
+PLS_TH_Yscores <- PLS_TH$YScores[, 1]
+
+lmPLS_TH <- lm(PLS_TH_Xscores ~ PLS_TH_Yscores)
+summary(lmPLS_TH)
+```
+
+```{r Step 8.9e}
+# Type 1
+gpaT1outline <- gpagen(T1outline,PrinAxes=TRUE)
+gpaT1prefs <- gpagen(T1prefs,PrinAxes=TRUE)
+
+PLS_T1 <-two.b.pls(gpaT1outline$coords, gpaT1prefs$coords,iter=999)
+summary(PLS_T1)
+PLS_T1_cov <- (PLS_T1$svd$d[1]^2 / sum(PLS_T1$svd$d^2)) * 100
+print(PLS_T1_cov)
+
+PLS_T1_Xscores <- PLS_T1$XScores[, 1]
+PLS_T1_Yscores <- PLS_T1$YScores[, 1]
+
+lmPLS_T1 <- lm(PLS_T1_Xscores ~ PLS_T1_Yscores)
+summary(lmPLS_T1)
+```
+
+```{r Step 8.9f}
+# Type 2
+gpaT2outline <- gpagen(T2outline,PrinAxes=TRUE)
+gpaT2prefs <- gpagen(T2prefs,PrinAxes=TRUE)
+
+PLS_T2 <-two.b.pls(gpaT2outline$coords, gpaT2prefs$coords,iter=999)
+summary(PLS_T2)
+PLS_T2_cov <- (PLS_T2$svd$d[1]^2 / sum(PLS_T2$svd$d^2)) * 100
+print(PLS_T2_cov)
+
+PLS_T2_Xscores <- PLS_T2$XScores[, 1]
+PLS_T2_Yscores <- PLS_T2$YScores[, 1]
+
+lmPLS_T2 <- lm(PLS_T2_Xscores ~ PLS_T2_Yscores)
+summary(lmPLS_T2)
+```
+
+```{r Step 8.9g}
+# Type 1/2
+gpaT12outline <- gpagen(T12outline,PrinAxes=TRUE)
+gpaT12prefs <- gpagen(T12prefs,PrinAxes=TRUE)
+
+PLS_T12 <-two.b.pls(gpaT12outline$coords, gpaT12prefs$coords,iter=999)
+summary(PLS_T12)
+PLS_T12_cov <- (PLS_T12$svd$d[1]^2 / sum(PLS_T12$svd$d^2)) * 100
+print(PLS_T12_cov)
+
+PLS_T12_Xscores <- PLS_T12$XScores[, 1]
+PLS_T12_Yscores <- PLS_T12$YScores[, 1]
+
+lmPLS_T12 <- lm(PLS_T12_Xscores ~ PLS_T12_Yscores)
+summary(lmPLS_T12)
+```
+
+10.  Shape standardisation was assessed using the Coefficient of Variation (CV) on Procrustes distances from the mean shape. CV is calculated as: (mean / sd) * 100. Values of 20% or lower were regarding as showing high standardisation.
+
+```{r Step 8.10a}
+## -- CORE SURFACES --
+# Extract gpa coords and calculate mean shape and Procrustes distances from the mean shape
+patchcoords <- patched_gpa$coords
+patchmeansh <- mshape(patchcoords)
+patchproc_dist <- apply(patchcoords, 3, function(x) sqrt(sum((x - patchmeansh)^2)))
+
+# Associate specimen names with Procrustes distance data
+specimen_names <- dimnames(patchcoords)[[3]]
+patchproc_dist_tab <- data.frame(Specimen = specimen_names, Distance = patchproc_dist)
+
+patchproc_dist_tab <- patchproc_dist_tab %>%
+  left_join(cores_filtered, by = c("Specimen" = "File_name"))
+
+# Calculate CV (mean/sd * 100) by area/region and assemblage
+cv_patch_Area <- patchproc_dist_tab %>%
+  #mutate(Area = ifelse(is.na(Area), "NK", Area)) %>% 
+  group_by(Area) %>%
+  summarise(
+    Mean_pd = mean(Distance),
+    SD_pd = sd(Distance),
+    CV = sd(Distance) / mean(Distance) * 100)
+print(cv_patch_Area)
+
+cv_patch_Assemblage <- patchproc_dist_tab %>%
+  #mutate(Assemblage = ifelse(is.na(Assemblage), "NK1_M", Assemblage)) %>% 
+  group_by(Assemblage) %>%
+  summarise(
+    Mean_pd = mean(Distance),
+    SD_pd = sd(Distance),
+    CV = sd(Distance) / mean(Distance) * 100)
+print(cv_patch_Assemblage)
+```
+
+```{r Step 8.10b}
+## -- PREF SCARS --
+# Extract gpa coords and calculate mean shape and Procrustes distances from the mean shape
+prefcoords <- pref_gpa$coords
+prefmeansh <- mshape(prefcoords)
+prefproc_dist <- apply(prefcoords, 3, function(x) sqrt(sum((x - prefmeansh)^2)))
+
+# Associate specimen names with Procrustes distance data
+specimen_names <- dimnames(prefcoords)[[3]]
+prefproc_dist_tab <- data.frame(Specimen = specimen_names, Distance = prefproc_dist)
+
+prefproc_dist_tab <- prefproc_dist_tab %>%
+  left_join(cores_filtered, by = c("Specimen" = "File_name"))
+
+# Calculate CV (mean/sd * 100) by area/region and assemblage
+cv_pref_Area <- prefproc_dist_tab %>%
+  group_by(Area) %>%
+  summarise(
+    Mean_pd = mean(Distance),
+    SD_pd = sd(Distance),
+    CV_pd = sd(Distance) / mean(Distance) * 100)  # CV as percentage
+print(cv_pref_Area)
+
+cv_pref_Assemblage <- prefproc_dist_tab %>%
+  group_by(Assemblage) %>%
+  summarise(
+    Mean_pd = mean(Distance),
+    SD_pd = sd(Distance),
+    CV_pd = sd(Distance) / mean(Distance) * 100) # CV as percentage
+print(cv_pref_Assemblage)
+```
+
+```{r Step 8.10c}
+## -- NK PRODUCT OUTLINES --
+# Extract gpa coords and calculate mean shape and Procrustes distances from the mean shape
+prodvcoords <- prodv_gpa$coords
+prodvmeansh <- mshape(prodvcoords)
+prodvproc_dist <- apply(prodvcoords, 3, function(x) sqrt(sum((x - prodvmeansh)^2)))
+
+# Associate specimen names with Procrustes distance data
+specimen_names <- dimnames(prodvcoords)[[3]]
+prodvproc_dist_tab <- data.frame(Specimen = specimen_names, Distance = prodvproc_dist)
+
+prodvproc_dist_tab <- prodvproc_dist_tab %>%
+  left_join(prods_filtered, by = c("Specimen" = "File_name"))
+
+# Calculate CV (mean/sd * 100) by area/region and assemblage
+cv_prodv_Assemblage <- prodvproc_dist_tab %>%
+  group_by(Assemblage) %>%
+  summarise(
+    Mean_pd = mean(Distance),
+    SD_pd = sd(Distance),
+    CV = sd(Distance) / mean(Distance) * 100)
+print(cv_prodv_Assemblage)
+
+cv_prodv_NK <- prodvproc_dist_tab %>%  # overall CV for NK products
+  summarise(
+    Mean_pd = mean(Distance),
+    SD_pd = sd(Distance),
+    CV = sd(Distance) / mean(Distance) * 100)
+print(cv_prodv_NK)
+```
+
+------------------------------------------------------------------------
+
+## References
+
+Adams, D., Collyer, M., Kaliontzopoulou, A., Baken, E. (2024). Geomorph: Software for geometric morphometric analyses. R package version 4.0.8. https://cran.r-project.org/package=geomorph.
+
+Archer, W., Pop, C.M., Rezek, Z., Schlager, S., Lin, S.C., Weiss, M., Dogandžić, T., Desta, D., McPherron, S.P., 2018. A geometric morphometric relationship predicts stone flake shape and size variability. Archaeological and Anthropological Sciences 10, 1991–2003. https://doi.org/10.1007/s12520-017-0517-2
+
+Archer, W., Djakovic, I., Brenet, M., Bourguignon, L., Presnyakova, D., Schlager, S., Soressi, M., McPherron, S.P., 2021. Quantifying differences in hominin flaking technologies with 3D shape analysis. Journal of Human Evolution 150, 102912. https://doi.org/10.1016/j.jhevol.2020.102912
+
+Baken, E., Collyer, M., Kaliontzopoulou, A., Adams D., 2021. geomorph v4.0 and gmShiny: enhanced analytics and a new graphical interface for a comprehensive morphometric experience. Methods in Ecology and Evolution 12, 2355–2363. https://doi.org/10.1111/2041-210X.13723
+
+Bardua, C., Felice, R.N., Watanabe, A., Fabre, A.-C., Goswami, A., 2019. A practical guide to sliding and surface semilandmarks in morphometric analyses. Integrative Organismal Biology 1(1), obz016. https://doi.org/10.1093/iob/obz016
+
+Cignoni, C., Callieri, M., Corsini, M., Dellepiane, M., Ganovelli, F., Ranzuglia, G., 2008. MeshLab: an open-source mesh processing tool. Sixth Eurographics Italian Chapter Conference, 129–136.
+
+Fox, J., Weisberg, S., 2019. An R Companion to Applied Regression, Third edition. Sage.
+
+Garland, M., Heckbert, P.S., 1997. Surface simplification using quadric error metrics. Proceedings of the 24th annual conference on Computer graphics and interactive techniques, 209– 216.
+
+Murdoch, D., Adler, D., 2024. rgl: 3D visualization using OpenGL. R package version 1.3.1. https://CRAN.R-project.org/package=rgl
+
+Plate, T., Heiberger, R., 2016. abind: combine multidimensional arrays. R package version 1.4-5. https://CRAN.R-project.org/package=abind
+
+R Core Team, 2024. R: A Language and Environment for Statistical Computing. R Foundation for Statistical Computing, Vienna, Austria. https://www.R-project.org.
+
+Schlager, S., 2017. Morpho and Rvcg – shape analysis in R, in: Zheng, G., Li, S., Szekely, G. (Eds.), Statistical Shape and Deformation Analysis. Academic Press, pp. 217–256. https://doi.org/10.1016/b978-0-12-810493-4.00011-0
+
+Thulman, D.K., Shott, M.J., Slade, A.M. and Williams, J.P., 2023. Clovis point allometry, modularity, and integration: Exploring shape variation due to tool use with landmark-based geometric morphometrics. PLoS ONE, 18(8), e0289489. https://doi.org/10.1371/journal.pone.0289489
+
+Wickham, H., 2016. ggplot2: Elegant graphics for data analysis. Springer-Verlag.
+
+Wickham, H., Francois, R., Henry, L., Muller, K., Vaughan, D., 2023. dplyr: a grammar of data manipulation. R package version 1.1.4. https://CRAN.R-project.org/package=dplyr
+
