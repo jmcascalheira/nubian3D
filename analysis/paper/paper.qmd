@@ -49,7 +49,7 @@ Highlights: `r rmarkdown::metadata$highlights`
 <!-- The actual document text starts here: -->
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(cache = FALSE, echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 ```{r}
@@ -98,21 +98,28 @@ GM analyses by Lycett and von Cramon-Taubadel (2013) indicate that the outline s
 # 3. Materials and methods
 
 ### 3.1. Materials
-The lithic samples derive from the Nile Valley sites of Nazlet Khater 1 (Middle and Upper levels) and Nazlet Khater 3 (NK), and Dhofar sites of TH.571 and TH.584 (TH). These assemblages contain Nubian Levallois cores whose technological characterisation is not disputed, meeting the generally-accepted criteria for this artefact type (Usik et al. 2013; Hallinan et al. 2022b). Nubian reduction is characterised by three main strategies of preparation to create the central ridge that guides the preferential removal. This can be achieved through distal removals (elsewhere described as ‘Type 1 Nubian’ (Guichard and Guichard 1965)), lateral removals (‘Type 2’), and a combination of both distal and lateral removals (‘Type 1/2’ (Olszewski et al. 2010; Usik et al. 2013)). The analysed samples in this study include only complete cores which preserve a preferential scar outline and a clear DMR (Table 1, Table 2). Levallois end-products from NK were included for comparison with the scar outline. These possessed varied dorsal scar patterns, meaning that they could derive from both Nubian or ‘Classical’ Levallois cores (Van Peer 1992). Products in the analysed sample had a generally convergent distal end shape, although this encompassed products with wide-ranging morphologies (Table 3).
+The lithic samples derive from the Nile Valley sites of Nazlet Khater 1 (Middle and Upper levels) and Nazlet Khater 3 (NK), and Dhofar sites of TH.571 and TH.584 (TH). These assemblages contain Nubian Levallois cores whose technological characterisation is not disputed, meeting the generally-accepted criteria for this artefact type (Usik et al. 2013; Hallinan et al. 2022b). Nubian reduction is characterised by three main strategies of preparation to create the central ridge that guides the preferential removal. This can be achieved through distal removals (elsewhere described as ‘Type 1 Nubian’ (Guichard and Guichard 1965)), lateral removals (‘Type 2’), and a combination of both distal and lateral removals (‘Type 1/2’ (Olszewski et al. 2010; Usik et al. 2013)). The analysed samples in this study include only complete cores which preserve a preferential scar outline and a clear DMR (@tbl-dataset, @tbl-preparation). Levallois end-products from NK were included for comparison with the scar outline. These possessed varied dorsal scar patterns, meaning that they could derive from both Nubian or ‘Classical’ Levallois cores (Van Peer 1992). Products in the analysed sample had a generally convergent distal end shape, although this encompassed products with wide-ranging morphologies (Table 3).
+
+::: {.table-caption #tbl-dataset}
 
 ```{r}
 
 assemblages <- read_csv("../data/raw_data/assemblages.csv")
 
-knitr::kable(assemblages, caption = "Table 1: Summary of assemblage samples")
+knitr::kable(assemblages, caption = "Summary of assemblage samples.", align = "l")
 
 ```
+:::
+
+::: {.table-caption #tbl-preparation}
 
 ```{r}
 preparation_strategies <- read_csv("../data/raw_data/preparation_strategies.csv")
 
-knitr::kable(preparation_strategies, caption = "Table 2: Nubian core preparation strategies in NK and TH assemblages")
+knitr::kable(preparation_strategies, caption = "Nubian core preparation strategies in NK and TH assemblages")
 ```
+
+:::
 
 ```{r}
 
@@ -121,13 +128,13 @@ knitr::kable(preparation_strategies, caption = "Table 2: Nubian core preparation
 #### 3.1.1. Nazlet Khater (NK)
 The NK sites were identified during surveys on the west bank of the River Nile in 1976 as part of the Belgium Middle Egypt Prehistoric Project, with the lithic material currently curated at Leuven University, Belgium (Vermeersch et al. 1977, 1979). The studied assemblages derive from buried – albeit undated – stratified contexts, at NK1 divided into Middle (NK1-M) and Upper (NK1-U) assemblages. The underlying Lower assemblage was excluded from this analysis owing to the small sample size, and although the Upper layer was initially divided into A and B horizons, these were later deemed to be homogenous by the excavators (Vermeersch et al. 2002a). Both NK1 and NK3 were interpreted as chert quarrying sites owing to the availability of high-quality chert cobbles in nearby Nile and wadi deposits (Vermeersch et al. 2002a, 2002b). The Nubian Levallois reduction method occurs alongside ‘Classical’ centripetally-prepared Levallois flake production. While Nubian cores substantially outnumber ‘Classical’ cores (the latter comprising 25% and 18% of the Levallois cores in the Middle and Upper assemblages respectively), these proportions do not correspond with Levallois end-products attributed to each method based on dorsal scar patterns (‘Classical’: NK1-M 55%; NK1-U 49%) (Vermeersch et al. 2002a, 2002b). This raises two questions; firstly, whether end-products can be reliably distinguished from different Levallois reduction methods, and secondly, whether during a full reduction sequence the two methods could be applied to the same cores. Van Peer (1992) rejects this latter scenario of flexible implementation of different Levallois methods since it is unsupported by the refit sequences. However, in a brief reassessment of 35 ‘non-Nubian’ Levallois cores from NK1-Upper (presumed to be categorised as Classical in previous analyses), numerous cores were observed to possess a remnant distal platform and muted distal median ridge, suggesting there may be some more nuanced aspects to Levallois reduction at the sites. 
 
-The 115 Nubian cores included in the sample show a predominantly distal preparation strategy (75.7%), with a small number of bilaterally prepared cores (6.1%), and in contrast to previous analyses of the assemblages, Nubian cores with both distal and lateral removals were also distinguished (16.5%) (Table 2).
+The 115 Nubian cores included in the sample show a predominantly distal preparation strategy (75.7%), with a small number of bilaterally prepared cores (6.1%), and in contrast to previous analyses of the assemblages, Nubian cores with both distal and lateral removals were also distinguished (16.5%) (@tbl-preparation).
 
 
 #### 3.1.2 Dhofar (TH)
 The TH assemblages were collected in 2023 as part of the ongoing Dhofar Archaeological Project which has identified Nubian Levallois technology at hundreds of localities on the interior Nejd plateau near Thumrait in southern Oman (Rose et al. 2011; Rose et al. 2023). The samples TH.571 and TH.584 derive from surface contexts where artefacts lie on a desert pavement surface, but an OSL age of 106 ka was obtained from a buried core at Aybut Al Auwal (TH.59), a few hundred metres from TH.584 (Rose et al. 2011). Chert is available from primary outcrops close to each site.
 
-There are several key differences between the TH and NK assemblages: first, Nubian Levallois is the only Levallois core reduction strategy present in almost all Dhofar Middle Palaeolithic assemblages, and furthermore there are very few non-Levallois cores. Additionally, Levallois end-products are scarce at most sites which may reflect different patterns of landscape use between the Nile Valley and the Nejd plateau, as well as the types of site studied. The Dhofar Nubian cores also show more varied patterns of preparation than the predominantly distal preparation at NK, using mainly bilateral (41.2%) and a combination of distal and lateral (45.1%) removals (Table 2). It is worth noting that at other Dhofar sites, distally-prepared cores are proportionally more common than in these two particular assemblages (Usik et al. 2013; Rose et al. 2018).
+There are several key differences between the TH and NK assemblages: first, Nubian Levallois is the only Levallois core reduction strategy present in almost all Dhofar Middle Palaeolithic assemblages, and furthermore there are very few non-Levallois cores. Additionally, Levallois end-products are scarce at most sites which may reflect different patterns of landscape use between the Nile Valley and the Nejd plateau, as well as the types of site studied. The Dhofar Nubian cores also show more varied patterns of preparation than the predominantly distal preparation at NK, using mainly bilateral (41.2%) and a combination of distal and lateral (45.1%) removals (@tbl-preparation). It is worth noting that at other Dhofar sites, distally-prepared cores are proportionally more common than in these two particular assemblages (Usik et al. 2013; Rose et al. 2018).
 
 ### 3.2. Methods
 The specific features that define Nubian cores were captured on 3D models of artefacts using landmark and semilandmark points, complemented by qualitative attribute data (Table 4). Landmark processing, GM and statistical analyses were carried out in R (R Core Team 2024) using functions in the packages Morpho (Schlager 2017) and geomorph (Baken et al. 2021; Adams et al. 2024). Full details are provided in the accompanying R markdown and R scripts (REPOSITORY), and extended results (Supplementary figures and tables).
