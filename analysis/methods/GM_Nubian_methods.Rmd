@@ -86,7 +86,7 @@ library(dplyr)
 
 **Data:** Download, from our OSF.io repository the corresponding .ply and .pts files for 115 cores from NK sites and 51 from TH sites (total, 166).\
 
-```{r Step 5 DownloadProd}
+```{r Step 5 DownloadCores}
 
 ## Core Data
 # Create the directory to store core data if it doesn't exist
@@ -370,7 +370,7 @@ library(dplyr)
 
 **Data:** Corresponding .ply and .pts files for 178 Levallois products (blanks) from NK sites in folder "Product_data".\
 
-```{r Step 5 DownloadCore}
+```{r Step 5 DownloadProd}
 
 ## Product Data
 # Create the directory to store core data if it doesn't exist
