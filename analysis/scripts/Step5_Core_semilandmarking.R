@@ -38,13 +38,14 @@ core_landmarks <- geomorph::arrayspecs(core_landmarks, 63, 3)
 
 # View specimen example with imported landmark configuration
 core1 <- vcgImport(file.path(core_data, "CoreME78.627Aa_LR.ply"))
+
 shade3d(core1, color = "gray")
 spheres3d(core_landmarks[1:3,,34], color = 1, radius = 1)
 spheres3d(core_landmarks[4:23,,34], color = 2, radius = 0.7)
 spheres3d(core_landmarks[24:43,,34], color = 3, radius = 0.7)
 spheres3d(core_landmarks[44:63,,34], color = 4, radius = 0.7)
 #rgl.snapshot('analysis/figures/core_landmarks_example.png', fmt = 'png')
-#close3d()
+close3d()
 
 ###------------------------------------------------------------------------
 ## STEP 5.2 Resample core outline semilandmarks
@@ -73,7 +74,7 @@ spheres3d(core_lms[4:9,,34], color = 2, radius = 0.7)
 spheres3d(core_lms[10:24,,34], color = 3, radius = 0.7)
 spheres3d(core_lms[25:39,,34], color = 4, radius = 0.7)
 #rgl.snapshot('analysis/figures/core_lms_example.png', fmt = 'png')
-#close3d()
+close3d()
 
 ###---------------------------------------------------------------------------
 
@@ -94,14 +95,14 @@ slide_curves <- slider3d(core_lms, SMvector = fix, deselect = TRUE, outlines = o
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curves$dataslide[,,34],core_lms[,,34],ngrid = 0)
-#close3d()
+close3d()
 
 # View slid slms on mesh model
 shade3d(core1, color = "gray")
 spheres3d(slide_curves$dataslide[fix,,34],col=1,radius=1)
 spheres3d(slide_curves$dataslide[,,34],col=3,radius=0.7)
 #rgl.snapshot('analysis/figures/core_lms_slid.png', fmt = 'png')
-#close3d()
+close3d()
 
 # Rename and save outline slms
 alloutline <- slide_curves$dataslide
@@ -134,7 +135,7 @@ spheres3d(pref_landmarks[40,,34], color = 1, radius = 1)
 spheres3d(pref_landmarks[2:39,,34], color = 3, radius = 0.7)
 spheres3d(pref_landmarks[41:50,,34], color = 4, radius = 0.7)
 #rgl.snapshot('analysis/figures/pref_landmarks_example.png', fmt = 'png')
-#close3d()
+close3d()
 
 # Create an empty array for resampled semilandmarks (37 slms, 3 dimensions, 166 specimens)
 pref_lms <- array(0, dim=c(37,3,166))
@@ -156,7 +157,7 @@ spheres3d(pref_lms[31,,34], color = 1, radius = 1)
 spheres3d(pref_lms[1:30,,34], color = 3, radius = 0.7)
 spheres3d(pref_lms[32:36,,34], color = 4, radius = 0.7)
 #rgl.snapshot('analysis/figures/pref_lms_example.png', fmt = 'png')
-#close3d()
+close3d()
 
 # Save for future use
 save(pref_lms, file = "analysis/data/derived_data/pref_lms.RData")
@@ -173,14 +174,14 @@ slide_curvesP <- slider3d(pref_lms, SMvector = fixP, deselect = TRUE, outlines =
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curvesP$dataslide[,,34],pref_lms[,,34],ngrid = 0)
-#close3d()
+close3d()
 
 # View slid slms on mesh model
 shade3d(core1, color = "gray")
 spheres3d(slide_curvesP$dataslide[fixP,,34],col=4,radius=1)
 spheres3d(slide_curvesP$dataslide[,,34],col=3,radius=0.7)
 #rgl.snapshot('analysis/figures/pref_lms_slid.png', fmt = 'png')
-#close3d()
+close3d()
 
 # Rename and save
 allprefs <- slide_curvesP$dataslide
@@ -195,7 +196,7 @@ core_temp <- as.matrix(read.table("analysis/data/derived_data/CoreME78.389c_LRte
 
 core_atlas <- createAtlas(coreT, landmarks = alloutline[,,20], patch = core_temp)
 plotAtlas(core_atlas)
-#close3d()
+close3d()
 
 ###---------------------------------------------------------------------------
 

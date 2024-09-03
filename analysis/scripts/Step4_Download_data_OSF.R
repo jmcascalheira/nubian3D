@@ -34,7 +34,7 @@ osf_retrieve_file("https://osf.io/a8w5f") %>%
   osf_download(path = "analysis/data/raw_data/product_data")
 
 # Specify the path to the Zip file
-zip_file <- "analysis/data/raw_data/product_data.zip"
+zip_file <- "analysis/data/raw_data/product_data/product_data.zip"
 
 # Extract files from the Zip archive
 unzip(zip_file, exdir = "analysis/data/raw_data/product_data")

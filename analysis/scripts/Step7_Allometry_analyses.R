@@ -114,8 +114,8 @@ patchCS <- procD.lm(coords~ log(Csize), data=allpatch.gdf, iter=1000, RRPP=TRUE,
 summary(patchCS)
 
 # Define colors and shapes for NK and TH
-color <- c(NK = "royalblue", TH = "indianred1")
-shape <- c(NK = 16, TH = 17)
+colsArea <- c(NK = "royalblue", TH = "indianred1")
+shapesArea <- c(NK = 16, TH = 17)
 
 # Assign colors and shapes based on Area in the .gdf
 allpatch.gdf$Area <- as.factor(allpatch.gdf$Area)
@@ -249,8 +249,8 @@ print(slope)
 ## STEP 7.7  Further investigate regional differences by conducting GPA and Procrustes ANOVA for each region separately
 ## -- CORE SURFACES --
 # Load NK and TH data
-load("patchedNK.RData")
-load("patchedTH.RData")
+load("analysis/data/derived_data/patchedNK.RData")
+load("analysis/data/derived_data/patchedTH.RData")
 
 # Perform Generalised Procrustes Analysis (GPA)
 patchedNK_gpa<-gpagen(patchedNK, print.progress = FALSE)
@@ -259,10 +259,6 @@ patchedTH_gpa<-gpagen(patchedTH, print.progress = FALSE)
 # Create a new geomorph dataframe (.gdf) from the GPA output
 NKpatch.gdf <- geomorph.data.frame(patchedNK_gpa)
 THpatch.gdf <- geomorph.data.frame(patchedTH_gpa)
-
-# Perform Generalised Procrustes Analysis (GPA)
-prefNK_gpa<-gpagen(prefNK, print.progress = FALSE)
-prefTH_gpa<-gpagen(prefTH, print.progress = FALSE)
 
 # Perform Procrustes ANOVA for NK core surfaces
 NK_CS <- procD.lm(coords ~ log(Csize), data = NKpatch.gdf, iter = 1000, RRPP = TRUE, print.progress = FALSE)
@@ -275,8 +271,8 @@ summary(TH_CS)
 
 ## -- PREF SCARS --
 # Load NK and TH data
-load("prefNK.RData")
-load("prefTH.RData")
+load("analysis/data/derived_data/prefNK.RData")
+load("analysis/data/derived_data/prefTH.RData")
 
 # Perform Generalised Procrustes Analysis (GPA)
 prefNK_gpa<-gpagen(prefNK, print.progress = FALSE)

@@ -7,30 +7,27 @@ library(Rvcg)
 library(ggplot2)
 library(car)
 
-# Load processed shape data and attributes
-setwd("C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
-
 # If not already imported in Step 7:
 ## -- CORE DATA --
 # Core surfaces
-load("allpatched.RData")
+load("analysis/data/derived_data/allpatched.RData")
 
 # Core outlines
-load("alloutline.RData")
+load("analysis/data/derived_data/alloutline.RData")
 
 # Pref scar outlines
-load("allprefs.RData")
+load("analysis/data/derived_data/allprefs.RData")
 
 ## -- PRODUCT DATA -- (Not used in Step 7)
 # NK end products
-load("prod_patched.Rdata")
-load("prod_ventr.Rdata")
+load("analysis/data/derived_data/prod_patched.Rdata")
+load("analysis/data/derived_data/prod_ventr.Rdata")
 
 # Import attribute files
-cores <- read.csv("File_list_cores.csv")
+cores <- read.csv("analysis/data/derived_data/File_list_cores.csv")
 cores <- dplyr::arrange(cores, File_name)
 
-prods <- read.csv("File_list_prods.csv")
+prods <- read.csv("analysis/data/derived_data/File_list_prods.csv")
 prods <- dplyr::arrange(prods, File_name)
 
 ###---------------------------------------------------------------------------
@@ -271,11 +268,11 @@ msh_patch <- mshape(patched_gpa$coords)
 
 # Create an outline by linking consecutive slms of the shape
 #define.links(msh_patch, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
-core_links <- read.csv("Core_links.csv")
+core_links <- read.csv("analysis/data/derived_data/Core_links.csv")
 
 # Identify the specimen that most closely matches the theoretical mean shape
 findMeanSpec(patched_gpa$coords)
-#CoreME78.789.41_LR 
+#CoreME78.789.41_LR
 #Specimen 83
 
 
@@ -287,7 +284,7 @@ GeneratePCShapes <- function(pc_num) {
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "blue", tar.pt.size = 0.7,
                   tar.link.col = "blue", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("PC", pc_num, "_min_profile.png"), fmt = 'png')
@@ -295,14 +292,14 @@ GeneratePCShapes <- function(pc_num) {
   rgl.snapshot(paste0("PC", pc_num, "_min.png"), fmt = 'png')
   view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("PC", pc_num, "_min_dist.png"), fmt = 'png')
-  
+
   # Mean shape (grey) and maximum shape (red)
   plotRefToTarget(msh_patch, PCA_allpatch$shapes[[paste0("shapes.comp", pc_num)]]$max,
                   method = "points", links = core_links,
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "red", tar.pt.size = 0.7,
                   tar.link.col = "red", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("PC", pc_num, "_max_profile.png"), fmt = 'png')
@@ -340,7 +337,7 @@ print(Specs)
 
 # Refer to specimens in the table to identify the correct mesh and outline slms (get specimen number from corelist) and output views for min. and max. specimens
 # Example for PC1 minimum specimen
-corePC1min <- vcgImport(file.path(core_data, "TH.571-130_LR.ply"))
+corePC1min <- vcgImport(file.path("analysis", "data", "raw_data", "core_data", "TH.571-130_LR.ply"))
 shade3d(corePC1min, color = "gray")
 spheres3d(alloutline[1:2,,130], color = "black", radius = 0.7)
 spheres3d(alloutline[3,,130], color = "grey40", radius = 0.7)
@@ -348,13 +345,13 @@ spheres3d(alloutline[4:39,,130], color = "blue", radius = 0.5)
 #spheres3d(allpatched[,,130], color = "blue", radius = 0.4) # view surface slm configuration
 
 # Manually reorient and save outputs
-rgl.snapshot('PC1sp_min.png', fmt = 'png')
-rgl.snapshot('PC1sp_min_profile.png', fmt = 'png')
-rgl.snapshot('PC1sp_min_dist.png', fmt = 'png')
+#rgl.snapshot('PC1sp_min.png', fmt = 'png')
+#rgl.snapshot('PC1sp_min_profile.png', fmt = 'png')
+#rgl.snapshot('PC1sp_min_dist.png', fmt = 'png')
 
 
 # Example for PC1 maximum specimen
-corePC1max <- vcgImport(file.path(core_data, "CoreME78.987c_LR.ply"))
+corePC1max <- vcgImport(file.path("analysis", "data", "raw_data", "core_data", "CoreME78.987c_LR.ply"))
 shade3d(corePC1max, color = "gray")
 spheres3d(alloutline[1:2,,93], color = "black", radius = 0.7)
 spheres3d(alloutline[3,,93], color = "grey40", radius = 0.7)
@@ -362,9 +359,9 @@ spheres3d(alloutline[4:39,,93], color = "red", radius = 0.5)
 #spheres3d(allpatched[,,93], color = "red", radius = 0.4) # view surface slm configuration
 
 # Manually reorient and save outputs
-rgl.snapshot('PC1sp_max.png', fmt = 'png')
-rgl.snapshot('PC1sp_max_profile.png', fmt = 'png')
-rgl.snapshot('PC1sp_max_dist.png', fmt = 'png')
+#rgl.snapshot('PC1sp_max.png', fmt = 'png')
+#rgl.snapshot('PC1sp_max_profile.png', fmt = 'png')
+#rgl.snapshot('PC1sp_max_dist.png', fmt = 'png')
 
 ## Repeat for other PCs
 
@@ -379,11 +376,11 @@ msh_pref <- mshape(pref_gpa$coords)
 
 # Create an outline by linking consecutive slms of the shape
 #define.links(msh_pref, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
-pref_links <- read.csv("Pref_links.csv")
+pref_links <- read.csv("analysis/data/derived_data/Pref_links.csv")
 
 # Identify the specimen that most closely matches the theoretical mean shape
 findMeanSpec(pref_gpa$coords)
-#CoreME80.4.42b_LR 
+#CoreME80.4.42b_LR
 #Specimen 106
 
 
@@ -395,7 +392,7 @@ GeneratePCShapes <- function(pc_num) {
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "blue", tar.pt.size = 0.7,
                   tar.link.col = "blue", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Pref_PC", pc_num, "_min_profile.png"), fmt = 'png')
@@ -403,14 +400,14 @@ GeneratePCShapes <- function(pc_num) {
   rgl.snapshot(paste0("Pref_PC", pc_num, "_min.png"), fmt = 'png')
   view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Pref_PC", pc_num, "_min_dist.png"), fmt = 'png')
-  
+
   # Mean shape (grey) and maximum shape (red)
   plotRefToTarget(msh_pref, PCA_allprefs$shapes[[paste0("shapes.comp", pc_num)]]$max,
                   method = "points", links = pref_links,
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "red", tar.pt.size = 0.7,
                   tar.link.col = "red", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Pref_PC", pc_num, "_max_profile.png"), fmt = 'png')
@@ -448,7 +445,7 @@ print(PrefSpecs)
 
 # Refer to specimens in the table to identify the correct mesh and outline slms (get specimen number from corelist) and output views for min. and max. specimens
 # Example for PC1 minimum specimen
-prefPC1min <- vcgImport(file.path(core_data, "TH.584-Gu5_LR.ply"))
+prefPC1min <- vcgImport(file.path("analysis", "data", "raw_data", "core_data", "TH.584-Gu5_LR.ply"))
 shade3d(prefPC1min, color = "gray")
 spheres3d(allprefs[31,,163], color = "black", radius = 0.7)
 spheres3d(allprefs[37,,163], color = "black", radius = 0.7)
@@ -456,13 +453,13 @@ spheres3d(allprefs[1:30,,163], color = "blue", radius = 0.5)
 spheres3d(allprefs[32:36,,163], color = "blue", radius = 0.5)
 
 # Manually reorient and save outputs
-rgl.snapshot('PrefPC1sp_min.png', fmt = 'png')
-rgl.snapshot('PrefPC1sp_min_profile.png', fmt = 'png')
-rgl.snapshot('PrefPC1sp_min_dist.png', fmt = 'png')
+#rgl.snapshot('PrefPC1sp_min.png', fmt = 'png')
+#rgl.snapshot('PrefPC1sp_min_profile.png', fmt = 'png')
+#rgl.snapshot('PrefPC1sp_min_dist.png', fmt = 'png')
 
 
 # Example for PC1 maximum specimen
-prefPC1max <- vcgImport(file.path(core_data, "CoreME78.787e_LR.ply"))
+prefPC1max <- vcgImport(file.path("analysis", "data", "raw_data", "core_data", "CoreME78.787e_LR.ply"))
 shade3d(prefPC1max, color = "gray")
 spheres3d(allprefs[31,,82], color = "black", radius = 0.7)
 spheres3d(allprefs[37,,82], color = "black", radius = 0.7)
@@ -470,9 +467,9 @@ spheres3d(allprefs[1:30,,82], color = "red", radius = 0.5)
 spheres3d(allprefs[32:36,,82], color = "red", radius = 0.5)
 
 # Manually reorient and save outputs
-rgl.snapshot('PrefPC1sp_max.png', fmt = 'png')
-rgl.snapshot('PrefPC1sp_max_profile.png', fmt = 'png')
-rgl.snapshot('PrefPC1sp_max_dist.png', fmt = 'png')
+#rgl.snapshot('PrefPC1sp_max.png', fmt = 'png')
+#rgl.snapshot('PrefPC1sp_max_profile.png', fmt = 'png')
+#rgl.snapshot('PrefPC1sp_max_dist.png', fmt = 'png')
 
 ## Repeat for other PCs
 
@@ -489,7 +486,7 @@ msh_prod <- mshape(prod_gpa$coords)
 
 # Create an outline by linking consecutive slms of the shape
 #define.links(msh_prod, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
-prod_links <- read.csv("Prod_links.csv")
+prod_links <- read.csv("analysis/data/derived_data/Prod_links.csv")
 
 # Identify the specimen that most closely matches the theoretical mean shape
 
@@ -506,7 +503,7 @@ GeneratePCShapes <- function(pc_num) {
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "blue", tar.pt.size = 0.7,
                   tar.link.col = "blue", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Prod_PC", pc_num, "_min_profile.png"), fmt = 'png')
@@ -514,14 +511,14 @@ GeneratePCShapes <- function(pc_num) {
   rgl.snapshot(paste0("Prod_PC", pc_num, "_min.png"), fmt = 'png')
   view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Prod_PC", pc_num, "_min_dist.png"), fmt = 'png')
-  
+
   # Mean shape (grey) and maximum shape (red)
   plotRefToTarget(msh_prod, PCA_prods$shapes[[paste0("shapes.comp", pc_num)]]$max,
                   method = "points", links = prod_links,
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "red", tar.pt.size = 0.7,
                   tar.link.col = "red", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Prod_PC", pc_num, "_max_profile.png"), fmt = 'png')
@@ -558,7 +555,7 @@ print(ProdSpecs)
 
 # Refer to specimens in the table to identify the correct mesh and outline slms (get specimen number from corelist) and output views for min. and max. specimens
 # Example for PC1 minimum specimen
-prodPC1min <- vcgImport(file.path(Product_data,"PointME78.589_LR.ply"))
+prodPC1min <- vcgImport(file.path("analysis", "data", "raw_data", "product_data","PointME78.589_LR.ply"))
 shade3d(prodPC1min, color = "gray")
 spheres3d(prod_ventr[31,,58], color = "black", radius = 0.7)
 spheres3d(prod_ventr[37,,58], color = "black", radius = 0.7)
@@ -566,13 +563,13 @@ spheres3d(prod_ventr[1:30,,58], color = "blue", radius = 0.5)
 spheres3d(prod_ventr[32:36,,58], color = "blue", radius = 0.5)
 
 # Manually reorient and save outputs
-rgl.snapshot('ProdPC1sp_min.png', fmt = 'png')
-rgl.snapshot('ProdPC1sp_min_profile.png', fmt = 'png')
-rgl.snapshot('ProdPC1sp_min_dist.png', fmt = 'png')
+#rgl.snapshot('ProdPC1sp_min.png', fmt = 'png')
+#rgl.snapshot('ProdPC1sp_min_profile.png', fmt = 'png')
+#rgl.snapshot('ProdPC1sp_min_dist.png', fmt = 'png')
 
 
 # Example for PC1 maximum specimen
-prodPC1max <- vcgImport(file.path(Product_data,"PointME80.4.31c_LR.ply"))
+prodPC1max <- vcgImport(file.path("analysis", "data", "raw_data", "product_data","PointME80.4.31c_LR.ply"))
 shade3d(prodPC1max, color = "gray")
 spheres3d(prod_ventr[31,,166], color = "black", radius = 0.7)
 spheres3d(prod_ventr[37,,166], color = "black", radius = 0.7)
@@ -580,9 +577,9 @@ spheres3d(prod_ventr[1:30,,166], color = "red", radius = 0.5)
 spheres3d(prod_ventr[32:36,,166], color = "red", radius = 0.5)
 
 # Manually reorient and save outputs
-rgl.snapshot('ProdPC1sp_max.png', fmt = 'png')
-rgl.snapshot('ProdPC1sp_max_profile.png', fmt = 'png')
-rgl.snapshot('ProdPC1sp_max_dist.png', fmt = 'png')
+#rgl.snapshot('ProdPC1sp_max.png', fmt = 'png')
+#rgl.snapshot('ProdPC1sp_max_profile.png', fmt = 'png')
+#rgl.snapshot('ProdPC1sp_max_dist.png', fmt = 'png')
 
 ## Repeat for other PCs
 
@@ -605,7 +602,7 @@ coord_prod_scar <- as.data.frame(PCscores_prod_scar)
 coord_prod_scar$File_name <- rownames(coord_prod_scar)
 
 # Import the combined attribute data (outliers are excluded) and set factors
-pref_prod <- read.csv("Pref_prod_list.csv")
+pref_prod <- read.csv("analysis/data/derived_data/Pref_prod_list.csv")
 pref_prod <- dplyr::arrange(pref_prod, File_name)
 Assemblage <- factor(pref_prod$Assemblage)
 Type <- factor(pref_prod$Artefact)
@@ -633,7 +630,7 @@ GeneratePCShapes <- function(pc_num) {
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "blue", tar.pt.size = 0.7,
                   tar.link.col = "blue", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Prodscar", pc_num, "_min_profile.png"), fmt = 'png')
@@ -641,14 +638,14 @@ GeneratePCShapes <- function(pc_num) {
   rgl.snapshot(paste0("Prodscar", pc_num, "_min.png"), fmt = 'png')
   view3d(theta = 90, phi = 0, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Prodscar", pc_num, "_min_dist.png"), fmt = 'png')
-  
+
   # Mean shape (grey) and maximum shape (red)
   plotRefToTarget(mshape_prodscar, PCA_prod_scar$shapes[[paste0("shapes.comp", pc_num)]]$max,
                   method = "points", links = pref_links,
                   gridPars = gridPar(pt.bg = "grey", pt.size = 0.5, link.lwd = 2,
                   tar.pt.bg = "red", tar.pt.size = 0.7,
                   tar.link.col = "red", tar.link.lwd = 2))
-  
+
   # Save output in multiple orientations
   view3d(theta = 180, phi = -90, zoom = 0.8, fov = 0, interactive = TRUE)
   rgl.snapshot(paste0("Prodscar", pc_num, "_max_profile.png"), fmt = 'png')
@@ -964,7 +961,7 @@ patchproc_dist_tab <- patchproc_dist_tab %>%
 
 # Calculate CV (mean/sd * 100) by area/region and assemblage
 cv_patch_Area <- patchproc_dist_tab %>%
-  #mutate(Area = ifelse(is.na(Area), "NK", Area)) %>% 
+  #mutate(Area = ifelse(is.na(Area), "NK", Area)) %>%
   group_by(Area) %>%
   summarise(
     Mean_pd = mean(Distance),
@@ -973,7 +970,7 @@ cv_patch_Area <- patchproc_dist_tab %>%
 print(cv_patch_Area)
 
 cv_patch_Assemblage <- patchproc_dist_tab %>%
-  #mutate(Assemblage = ifelse(is.na(Assemblage), "NK1_M", Assemblage)) %>% 
+  #mutate(Assemblage = ifelse(is.na(Assemblage), "NK1_M", Assemblage)) %>%
   group_by(Assemblage) %>%
   summarise(
     Mean_pd = mean(Distance),

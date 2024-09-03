@@ -884,10 +884,6 @@ patchedTH_gpa<-gpagen(patchedTH, print.progress = FALSE)
 NKpatch.gdf <- geomorph.data.frame(patchedNK_gpa)
 THpatch.gdf <- geomorph.data.frame(patchedTH_gpa)
 
-# Perform Generalised Procrustes Analysis (GPA)
-prefNK_gpa<-gpagen(prefNK, print.progress = FALSE)
-prefTH_gpa<-gpagen(prefTH, print.progress = FALSE)
-
 # Perform Procrustes ANOVA for NK core surfaces
 NK_CS <- procD.lm(coords ~ log(Csize), data = NKpatch.gdf, iter = 1000, RRPP = TRUE, print.progress = FALSE)
 summary(NK_CS)

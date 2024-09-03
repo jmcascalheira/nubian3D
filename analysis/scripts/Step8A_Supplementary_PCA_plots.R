@@ -5,7 +5,7 @@
 colsArea <- c("NK" = "royalblue", "TH" = "indianred1")
 shapesArea <- c("NK" = 16, "TH" = 17)
 
-# Set colour aesthetics for preparation (scar direction) and Nubian core Type 
+# Set colour aesthetics for preparation (scar direction) and Nubian core Type
 colsScars <- c("Distal" = "#FC8D62", "Bilateral" = "#66C2A5", "Distal-bilateral" = "#A6D854", "Distal-lateral-L" = "#E78AC3", "Distal-lateral-R" = "#8DA0CB")
 colsProdscar <- c("Bidirectional" = "#FC8D62", "Bilateral" = "#66C2A5", "Unidirectional" = "#FFD92F", "Unidirectional convergent" = "#FFD92F", "Centripetal" = "#A6D854", "Crossed L" = "#E78AC3", "Crossed R" = "#8DA0CB", "Indeterminate" = "grey")
 colsType <- c("T1" = "#FC8D62", "T2" = "#66C2A5", "T1/2" = "#8DA0CB")
