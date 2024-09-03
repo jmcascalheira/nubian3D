@@ -76,6 +76,7 @@ knitr::opts_chunk$set(cache = TRUE, echo = TRUE, results = 'hide', message = FAL
 
 ```{r Step 5 setup}
 # Install and load required packages
+library(osfr)
 library(Morpho)
 library(Rvcg)
 library(geomorph)
@@ -83,20 +84,33 @@ library(rgl)
 library(dplyr)
 ```
 
-**Data:** Corresponding .ply and .pts files for 115 cores from NK sites and 51 from TH sites (total, 166) in folder "Core_data".\
+**Data:** Download, from our OSF.io repository the corresponding .ply and .pts files for 115 cores from NK sites and 51 from TH sites (total, 166).\
 
-```{r include=FALSE}
-knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
+```{r Step 5 DownloadProd}
+
+## Core Data
+# Create the directory to store core data if it doesn't exist
+core_data <- file.path("data", "raw_data", "core_data")
+dir.create(core_data, recursive = TRUE, showWarnings = FALSE)
+
+# Download core data from OSF (alternatively, use the link in a web browser to download the .zip file)
+osf_retrieve_file("https://osf.io/mt4xv") %>%
+  osf_download(path = "data/raw_data/core_data")
+
+# Specify the path to the Zip file
+zip_file <- "data/raw_data/core_data/core_data.zip"
+
+# Extract files from the Zip archive
+unzip(zip_file, exdir = "data/raw_data/core_data")
+
 ```
+
 
 **Method:**
 
 1.  The corresponding 3D models (.ply) and landmark co-ordinates (.pts) for points 1 to 63 on each specimen were imported into R in a single matrix, then converted into a data array called “core landmarks” (package: geomorph, function: arrayspecs).
 
 ```{r Step 5.1}
-## Ensure GM_METHODS folder is set as the WD
-# Define a path to the folder with core data
-core_data <- file.path("Core_data")
 
 # Create list of files with .pts extension
 corelist <- list.files(path = core_data, pattern = ".pts")
@@ -151,7 +165,7 @@ for(i in 1:dim(core_landmarks)[3]) {
 }
 
 # Save the new semilandmark array for ease of future use
-save(core_lms, file = "core_lms.RData")
+save(core_lms, file = "../methods/data/derived_data/core_lms.RData")
 
 # To view an example core mesh (.ply) with resampled slms (identify the correct specimen number (#34) by viewing 'corelist')
 shade3d(core1, color = "gray")
@@ -178,7 +192,7 @@ dimnames(core_lms)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curves <- slider3d(core_lms, SMvector = fix, deselect = TRUE, outlines = outlines,
-                         sur.path = "core_data", sur.type = "ply", iterations = 3)
+                         sur.path = "../methods/data/raw_data/core_data", sur.type = "ply", iterations = 3)
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curves$dataslide[,,34],core_lms[,,34],ngrid = 0)
@@ -193,7 +207,7 @@ close3d()
 
 # Rename and save outline slms
 alloutline <- slide_curves$dataslide
-save(alloutline, file = "alloutline.RData")
+save(alloutline, file = "../methods/data/derived_data/alloutline.RData")
 ```
 
 4.  **Preferential scar outline:** A new array was created (“pref_landmarks”) and the 50 preferential scar outline landmarks (points 71 to 120) imported for each specimen. The SLM resampling (digit.curves) and sliding process (silder3d) was repeated for the preferential scar outline, with two curves formed of 30 edge points and 5 platform points, saved in a new data array “allprefs”, with dimensions 37 x 3 x 166. Note that because the sliding process allows SLMs to be slid along the core model surface, which here extends beyond the limits of the preferential scar outline, the platform SLMs (31-38) were treated as fixed points and excluded from the second relaxation step to avoid their misplacement.
@@ -248,7 +262,7 @@ spheres3d(pref_lms[32:36,,34], color = 4, radius = 0.7)
 close3d()
 
 # Save for future use
-save(pref_lms, file = "pref_lms.RData")
+save(pref_lms, file = "../methods/data/derived_data/pref_lms.RData")
 
 # Fix platform landmarks and relax edge semilandmarks on pref scar outline
 fixP <- c(31:37)
@@ -258,7 +272,7 @@ dimnames(pref_lms)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curvesP <- slider3d(pref_lms, SMvector = fixP, deselect = TRUE, outlines = outlinesP,
-                          sur.path = "core_data", sur.type = "ply", iterations = 3)
+                          sur.path = "../methods/data/raw_data/core_data", sur.type = "ply", iterations = 3)
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curvesP$dataslide[,,34],pref_lms[,,34],ngrid = 0)
@@ -273,7 +287,7 @@ close3d()
 
 # Rename and save
 allprefs <- slide_curvesP$dataslide
-save(allprefs, file = "allprefs.RData")
+save(allprefs, file = "../methods/data/derived_data/allprefs.RData")
 ```
 
 5.  **Core surface patch:** A template artefact was selected (CoreME78.389c) that did not represent any extremes in artefact shape, and two surface patches were placed (see 4.5 above). An atlas was created from the template mesh (package: Morpho, function: createAtlas) with the core outline defined by slid SLM points (“alloutline”).
@@ -281,7 +295,7 @@ save(allprefs, file = "allprefs.RData")
 ```{r Step 5.5}
 # Create atlas using (arbitrarily selected) core ME78.389c (specimen #20 for slid outline slms) as a template
 coreT <- vcgImport(file.path(core_data, "CoreME78.389c_LR.ply"))
-core_temp <- as.matrix(read.table("CoreME78.389c_LRtemplate.pts", skip = 2, header = F)[,2:4])
+core_temp <- as.matrix(read.table("../methods/data/derived_data/CoreME78.389c_LRtemplate.pts", skip = 2, header = F)[,2:4])
 
 core_atlas <- createAtlas(coreT, landmarks = alloutline[,,20], patch = core_temp)
 plotAtlas(core_atlas)
@@ -291,7 +305,7 @@ plotAtlas(core_atlas)
 
 ```{r Step 5.6}
 # Deform the template patch over each mesh surface. The inflate parameter can be adjusted if there are placement errors observed in the checking stage
-allpatched <- placePatch(atlas = core_atlas, dat.array = alloutline, path = "core_data", inflate = 7, fileext = ".ply")
+allpatched <- placePatch(atlas = core_atlas, dat.array = alloutline, path = "../methods/data/raw_data/core_data", inflate = 7, fileext = ".ply")
 ```
 
 7.  The deformation was checked for each specimen (function: checkLM), visualised in 3D using the Morpho dependent package rgl. Where deformation was not successful (i.e. visualisation did not show the expected placement of two surface patches (green spheres) separated by a semilandmarked outline (red spheres); or there were clear gaps in the patch grid), the landmark order was checked at the original landmark placement step (in Landmark V3). If no ordering problems were detected, the inflate parameter can be adjusted (here, 7 was found to eliminate errors) and the deformation step repeated. If there are a high number of failures, another solution is to apply an alternative template. See Bardua et al. (2019) for useful guidelines and solutions to semilandmarking errors (applied to biological specimens).
@@ -301,7 +315,7 @@ allpatched <- placePatch(atlas = core_atlas, dat.array = alloutline, path = "cor
 checkLM(allpatched, atlas=core_atlas)
 
 # Save the patched slm data
-save(allpatched, file = "allpatched.RData")
+save(allpatched, file = "../methods/data/derived_data/allpatched.RData")
 ```
 
 8.  To prepare the data for comparative analysis, it was split into separate datasets for the Nazlet Khater (NK) and Dhofar (TH) samples to allow for inter-regional analyses in later steps. Attributes (i.e. assemblage, preparation pattern, Nubian Type) were then imported from a .csv and appended to each specimen by filename.
@@ -309,23 +323,23 @@ save(allpatched, file = "allpatched.RData")
 ```{r Step 5.8}
 # Extract specimens 1-115 into "patchedNK"
 patchedNK <- allpatched[, , 1:115]
-save(patchedNK, file = "patchedNK.RData")
+save(patchedNK, file = "../methods/data/derived_data/patchedNK.RData")
 
 # Extract specimens 116-166 into "patchedTH"
 patchedTH <- allpatched[, , 116:166]
-save(patchedTH, file = "patchedTH.RData")
+save(patchedTH, file = "../methods/data/derived_data/patchedTH.RData")
 
 # Extract specimens 1-115 into "prefNK"
 prefNK <- allprefs[, , 1:115]
-save(prefNK, file = "prefNK.RData")
+save(prefNK, file = "../methods/data/derived_data/prefNK.RData")
 
 # Extract specimens 116-166 into "prefTH"
 prefTH <- allprefs[, , 116:166]
-save(prefTH, file = "prefTH.RData")
+save(prefTH, file = "../methods/data/derived_data/prefTH.RData")
 
 
 # Import attributes for specimens
-cores <- read.csv("File_list_cores.csv")
+cores <- read.csv("../methods/data/derived_data/File_list_cores.csv")
 cores <- dplyr::arrange(cores, File_name)
 Assemblage <- factor(cores$Assemblage)
 Area <- factor(cores$Area)
@@ -356,8 +370,23 @@ library(dplyr)
 
 **Data:** Corresponding .ply and .pts files for 178 Levallois products (blanks) from NK sites in folder "Product_data".\
 
-```{r include=FALSE}
-knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
+```{r Step 5 DownloadCore}
+
+## Product Data
+# Create the directory to store core data if it doesn't exist
+product_data <- file.path("data", "raw_data", "product_data")
+dir.create(product_data, recursive = TRUE, showWarnings = FALSE)
+
+# Download core data from OSF (alternatively, use the link in a web browser to download the .zip file)
+osf_retrieve_file("https://osf.io/a8w5f") %>%
+  osf_download(path = "data/raw_data/product_data")
+
+# Specify the path to the Zip file
+zip_file <- "data/raw_data/product_data/product_data.zip"
+
+# Extract files from the Zip archive
+unzip(zip_file, exdir = "data/raw_data/product_data")
+
 ```
 
 **Method:** after Archer et al. (2018, 2021)\
@@ -365,11 +394,9 @@ knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_MET
 1.	The corresponding 3D models (.ply) and landmark co-ordinates (.pts) were imported into R in a single matrix. The fixed landmarks (points 1-3) were kept at the start, but points 4-63 were imported in descending order. This is because the landmarks (step 3) were placed following the ordering protocol of Archer et al. (2018, 2021), but for comparison of products and core preferential scars, which matches the product ventral to the core surface, the numbering order must be reversed. This was then converted into a data array (package: geomorph, function: arrayspecs) (“landmarks”).
 
 ```{r Step 6.1}
-# Define a path to the folder with core data
-Product_data <- file.path("Product_data")
 
 # Create list of files with .pts extension
-prodlist <- list.files(path = Product_data, pattern = ".pts")
+prodlist <- list.files(path = product_data, pattern = ".pts")
 
 # Get names from files
 names <- gsub(".pts", "", basename(prodlist))
@@ -379,7 +406,7 @@ prod_landmarks <- NULL
 
 # Import each file and paste them in a single matrix. By placing points 4-63 in descending order, this step reverses the direction of the landmarks
 for (i in 1:length(prodlist)){
-  prod_path <- file.path(Product_data, prodlist[i])
+  prod_path <- file.path(product_data, prodlist[i])
   tmp <- as.data.frame(read.table(prod_path, skip = 2, header = F)[,2:4])
   fix <- tmp[1:3,]
   tmp <- arrange(tmp, desc(row_number()))
@@ -396,7 +423,7 @@ prod_landmarks <- matrix(data=prod_landmarks, ncol=3)
 prod_landmarks <- geomorph::arrayspecs(prod_landmarks, 63, 3)
 
 # To check the new landmark configuration on an example mesh (identify the correct specimen number (#3) by viewing 'prodlist')
-product1 <- vcgImport(file.path(Product_data, "PointME78.1017.4_LR.ply"))
+product1 <- vcgImport(file.path(product_data, "PointME78.1017.4_LR.ply"))
 shade3d(product1, color = "gray")
 spheres3d(prod_landmarks[1,,3], color = 1, radius = 1)
 spheres3d(prod_landmarks[2:3,,3], color = "darkgrey", radius = 1)
@@ -428,7 +455,7 @@ for(i in 1:dim(prod_landmarks)[3]) {
 }
 
 # Save the new semilandmark array for ease of future use
-save(prod_lms, file = "prod_lms.RData")
+save(prod_lms, file = "../methods/data/derived_data/prod_lms.RData")
 
 # To view the resampled slm configuration on an example mesh
 shade3d(product1, color = "gray")
@@ -459,7 +486,7 @@ dimnames(prod_lms)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curves <- slider3d(prod_lms, SMvector = fix, deselect = TRUE, outlines = outlines,
-                            sur.path = "Product_data", sur.type = "ply", iterations = 3)
+                            sur.path = "../methods/data/raw_data/product_data", sur.type = "ply", iterations = 3)
 
 # Visualise slid slms from previous to new positions
 deformGrid3d(slide_curves$dataslide[,,3],prod_lms[,,3],ngrid = 0)
@@ -473,13 +500,13 @@ spheres3d(slide_curves$dataslide[,,3], color = 2, radius=0.7)
 
 # Rename and save
 prod_outline <- slide_curves$dataslide # Product outline data are not used for analysis in this paper but is used in subsequent slm processing steps
-save(prod_outline, file = "prod_outline.RData")
+save(prod_outline, file = "../methods/data/derived_data/prod_outline.RData")
 ```
 4.	**Product surface patch:** A template artefact was selected (PointME78.1017.4) that did not represent any extremes in artefact shape, and three surface patches were placed (see step 3.3 above), composed of 18, 100 and 100 SLMs. Following the same procedure for cores in step 5.5, an atlas was created from the template mesh (package: Morpho, function: createAtlas) with the blank outline defined by slid SLM points (“prod_outline”).
 
 ```{r Step 6.4}
 # Create atlas using (arbitrarily selected) product ME78.1017.4 (specimen #3 for slid outline slms) as a template
-prod_temp <- as.matrix(read.table("PointME78.1017.4_LRtemplate.pts", skip = 2, header = F)[,2:4])
+prod_temp <- as.matrix(read.table("../methods/data/derived_data/PointME78.1017.4_LRtemplate.pts", skip = 2, header = F)[,2:4])
 outl_temp <- prod_outline[,,3]
 
 prod_atlas <- createAtlas(product1, landmarks = outl_temp, patch = prod_temp)
@@ -490,7 +517,7 @@ plotAtlas(prod_atlas)
 
 ```{r Step 6.5}
 # Deform the template over each mesh surface. The inflate parameter can be adjusted if there are placement errors observed in the checking stage
-prod_patched <- placePatch(atlas = prod_atlas, dat.array = prod_outline, path = "Product_data", inflate = 5, fileext = ".ply")
+prod_patched <- placePatch(atlas = prod_atlas, dat.array = prod_outline, path = "../methods/data/raw_data/product_data", inflate = 5, fileext = ".ply")
 ```
 
 6.	The deformation was checked for each specimen (function: checkLM), visualised in 3D using the Morpho dependent package rgl. See step 5.7 above for solutions to patch placement problems.
@@ -501,7 +528,7 @@ checkLM(prod_patched, atlas=prod_atlas)
 #close3d()
 
 # Save the patched slm data
-save(prod_patched, file = "prod_patched.RData")
+save(prod_patched, file = "../methods/data/derived_data/prod_patched.RData")
 
 ## Dataset is ready for GM comparison of end-products. The next step is required to extract the product ventral for comparison with the final preferential scar on cores.
 ```
@@ -552,7 +579,7 @@ dimnames(prod_ventr)[[3]] <- names
 
 # Slide semilandmarks along curves (this step takes some time and processing power for the large sample size)
 slide_curvesPv <- slider3d(prod_ventr, SMvector = fixPv, deselect = TRUE, outlines = outlinesPv,
-                          sur.path = "Product_data", sur.type = "ply", iterations = 3)
+                          sur.path = "../methods/data/raw_data/product_data", sur.type = "ply", iterations = 3)
 
 # View slid slms on mesh model
 shade3d(product1, color = "gray")
@@ -562,14 +589,14 @@ close3d()
 
 # Rename and save
 prod_ventr <- slide_curvesPv$dataslide
-save(prod_ventr, file = "prod_ventr.RData")
+save(prod_ventr, file = "../methods/data/derived_data/prod_ventr.RData")
 ```
 
 8.	To prepare the data for comparative analysis, attributes (i.e. assemblage, dorsal scar pattern, platform type etc) were then imported and appended to each specimen by filename.
 
 ```{r Step 6.8}
 # Import attribute data
-pts <- read.csv("File_list_prods.csv")
+pts <- read.csv("../methods/data/derived_data/File_list_prods.csv")
 pts <- dplyr::arrange(pts, File_name)
 Sample <- factor(pts$Assemblage)
 Platf_type <- factor(pts$Platf_type)
@@ -597,18 +624,14 @@ library(ggplot2)
 
 **Data:** R data files generated in the previous steps: “allpatched”, “alloutline”, “allprefs”.\
 
-```{r include=FALSE}
-knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
-```
-
 ```{r}
 # If necessary, load R data files of core landmark configurations generated in Step 5:
-load("allpatched.RData")
-load("alloutline.RData")
-load("allprefs.RData")
+load("../methods/data/derived_data/allpatched.RData")
+load("../methods/data/derived_data/alloutline.RData")
+load("../methods/data/derived_data/allprefs.RData")
 
 # Import the attribute data for cores and read attributes as Factors
-cores <- read.csv("File_list_cores.csv", header=TRUE, stringsAsFactors = TRUE)
+cores <- read.csv("../methods/data/derived_data/File_list_cores.csv", header=TRUE, stringsAsFactors = TRUE)
 ```
 
 **Method:** modified after Thulman et al. (2023)\
@@ -850,8 +873,8 @@ print(slope)
 ```{r Step 7.7a}
 ## -- CORE SURFACES --
 # Load NK and TH data
-load("patchedNK.RData")
-load("patchedTH.RData")
+load("../methods/data/derived_data/patchedNK.RData")
+load("../methods/data/derived_data/patchedTH.RData")
 
 # Perform Generalised Procrustes Analysis (GPA)
 patchedNK_gpa<-gpagen(patchedNK, print.progress = FALSE)
@@ -877,8 +900,8 @@ summary(TH_CS)
 ```{r Step 7.7b}
 ## -- PREF SCARS --
 # Load NK and TH data
-load("prefNK.RData")
-load("prefTH.RData")
+load("../methods/data/derived_data/prefNK.RData")
+load("../methods/data/derived_data/prefTH.RData")
 
 # Perform Generalised Procrustes Analysis (GPA)
 prefNK_gpa<-gpagen(prefNK, print.progress = FALSE)
@@ -918,22 +941,19 @@ library(car)
 
 **Data:** R data files generated in the previous steps: cores: “allpatched”, “alloutline”, “allprefs”; products: “prod_patched”, “prod_ventr”. Associated .csv files “core_links”, “pref_links”, “prod_links” and attribute data.
 
-```{r include=FALSE}
-knitr::opts_knit$set(root.dir = "C:/Users/eshal/Dropbox/R/nubianGM-master/GM_METHODS")
-```
 
 ```{r}
 # If necessary, load R data files and attributes:
-load("allpatched.RData")
-load("alloutline.RData")
-load("allprefs.RData")
-cores <- read.csv("File_list_cores.csv")
+load("../methods/data/derived_data/allpatched.RData")
+load("../methods/data/derived_data/alloutline.RData")
+load("../methods/data/derived_data/allprefs.RData")
+cores <- read.csv("../methods/data/derived_data/File_list_cores.csv")
 cores <- dplyr::arrange(cores, File_name)
 
 # Load product data (not used in Step 7)
-load("prod_patched.Rdata")
-load("prod_ventr.Rdata")
-prods <- read.csv("File_list_prods.csv")
+load("../methods/data/derived_data/prod_patched.Rdata")
+load("../methods/data/derived_data/prod_ventr.Rdata")
+prods <- read.csv("../methods/data/derived_data/File_list_prods.csv")
 prods <- dplyr::arrange(prods, File_name)
 ```
 
@@ -1183,7 +1203,7 @@ msh_patch <- mshape(patched_gpa$coords)
 
 # Create an outline by linking consecutive slms of the shape
 #define.links(msh_patch, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
-core_links <- read.csv("Core_links.csv")
+core_links <- read.csv("../methods/data/derived_data/Core_links.csv")
 
 # Identify the specimen that most closely matches the theoretical mean shape
 findMeanSpec(patched_gpa$coords)
@@ -1292,7 +1312,7 @@ msh_pref <- mshape(pref_gpa$coords)
 
 # Create an outline by linking consecutive slms of the shape
 #define.links(msh_pref, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
-pref_links <- read.csv("Pref_links.csv")
+pref_links <- read.csv("../methods/data/derived_data/Pref_links.csv")
 
 # Identify the specimen that most closely matches the theoretical mean shape
 findMeanSpec(pref_gpa$coords)
@@ -1404,7 +1424,7 @@ msh_prod <- mshape(prod_gpa$coords)
 
 # Create an outline by linking consecutive slms of the shape
 #define.links(msh_prod, ptsize = 3, links = NULL) # can define links between slms manually or input as a .csv
-prod_links <- read.csv("Prod_links.csv")
+prod_links <- read.csv("../methods/data/derived_data/Prod_links.csv")
 
 # Identify the specimen that most closely matches the theoretical mean shape
 
@@ -1477,7 +1497,7 @@ print(ProdSpecs)
 ```{r Step 8.7d}
 # Refer to specimens in the table to identify the correct mesh and outline slms (get specimen number from corelist) and output views for min. and max. specimens
 # Example for PC1 minimum specimen
-prodPC1min <- vcgImport(file.path(Product_data,"PointME78.589_LR.ply"))
+prodPC1min <- vcgImport(file.path(product_data,"PointME78.589_LR.ply"))
 shade3d(prodPC1min, color = "gray")
 spheres3d(prod_ventr[31,,58], color = "black", radius = 0.7)
 spheres3d(prod_ventr[37,,58], color = "black", radius = 0.7)
@@ -1491,7 +1511,7 @@ rgl.snapshot('ProdPC1sp_min_dist.png', fmt = 'png')
 
 
 # Example for PC1 maximum specimen
-prodPC1max <- vcgImport(file.path(Product_data,"PointME80.4.31c_LR.ply"))
+prodPC1max <- vcgImport(file.path(product_data,"PointME80.4.31c_LR.ply"))
 shade3d(prodPC1max, color = "gray")
 spheres3d(prod_ventr[31,,166], color = "black", radius = 0.7)
 spheres3d(prod_ventr[37,,166], color = "black", radius = 0.7)
@@ -1525,7 +1545,7 @@ coord_prod_scar <- as.data.frame(PCscores_prod_scar)
 coord_prod_scar$File_name <- rownames(coord_prod_scar)
 
 # Import the combined attribute data (outliers are excluded) and set factors
-pref_prod <- read.csv("Pref_prod_list.csv")
+pref_prod <- read.csv("../methods/data/derived_data/Pref_prod_list.csv")
 pref_prod <- dplyr::arrange(pref_prod, File_name)
 Assemblage <- factor(pref_prod$Assemblage)
 Type <- factor(pref_prod$Artefact)
