@@ -1,9 +1,10 @@
 Package: nubian3D
-Title: What the Package Does (One Line, Title Case)
+Title: Quantifying Levallois: a 3D geometric morphometrics approach to Nubian technology
 Version: 0.0.0.9000
 Authors@R:
     person("Emily", "Hallinan", , "eshallinan@ualg.pt", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    person("João", "Cascalheira", , "jmcascalheira@ualg.pt", role = c("aut", "cre"))
+Description: Compendium of R code and data for the paper Quantifying Levallois: a 3D geometric morphometrics approach to Nubian technology.
 License: MIT + file LICENSE
 ByteCompile: true
 Encoding: UTF-8
