@@ -11,10 +11,10 @@ knitr::opts_chunk$set(
   fig.path = "README-"
 )
 # Please put your title here to include it in the file below.
-Title <- "Quantifying Levallois: a 3D geometric morphometrics approach to Nubian technology"
+Title <- "Quantifying Levallois: a 3D geometric morphometric approach to Nubian technology"
 ```
 
-# Quantifying Levallois: a 3D geometric morphometrics approach to Nubian technology
+# Quantifying Levallois: a 3D geometric morphometric approach to Nubian technology
 
 [![Last-changedate](https://img.shields.io/badge/last%20change-`r gsub('-', '--', Sys.Date())`-brightgreen.svg)](https://github.com/jmcascalheira/LGMIberiaCluster/commits/master)
 [![minimal R version](https://img.shields.io/badge/R%3E%3D-3.2.4-brightgreen.svg)](https://cran.r-project.org/) 

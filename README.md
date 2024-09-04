@@ -2,7 +2,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# Quantifying Levallois: a 3D geometric morphometrics approach to Nubian technology
+# Quantifying Levallois: a 3D geometric morphometric approach to Nubian technology
 
 [![Last-changedate](https://img.shields.io/badge/last%20change-2024--09--04-brightgreen.svg)](https://github.com/jmcascalheira/LGMIberiaCluster/commits/master)
 [![minimal R
@@ -12,14 +12,14 @@ version](https://img.shields.io/badge/R%3E%3D-3.2.4-brightgreen.svg)](https://cr
 This repository contains the data and code for our paper:
 
 > Hallinan, E. & Cascalheira, J. (2024). *Quantifying Levallois: a 3D
-> geometric morphometrics approach to Nubian technology*.
+> geometric morphometric approach to Nubian technology*.
 
 ### How to cite
 
 Please cite this compendium as:
 
 > Hallinan, E. & Cascalheira, J. (2024). *Compendium of R code and data
-> for Quantifying Levallois: a 3D geometric morphometrics approach to
+> for Quantifying Levallois: a 3D geometric morphometric approach to
 > Nubian technology*. Accessed 04 Sep 2024. Online at
 > <https://doi.org/10.17605/OSF.IO/SJ8ZV>
 
