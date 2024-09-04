@@ -31,9 +31,12 @@ The **analysis(/analysis)** directory contains:
   code to reproduce the analysis. It also has an annotated R Markdown
   version with a HTML rendered version suitable for reading the complete
   methods.
-- [:file_folder: annotated-methods](./analysis/annotated-methods): R
-  Markdown file with detailed explanation of the different steps used
-  for the analysis.
+- [:file_folder: annotated-methods](./analysis/annotated-methods): [R
+  Markdown file](./analysis/annotated-methods/GM_Nubian_methods.Rmd)
+  with detailed explanation of the different steps used for the
+  analysis, and a [R Markdown Variant
+  file](./analysis/annotated-methods/GM_method_variant.Rmd) with several
+  extra steps to filter out anomalies.
 - [:file_folder: data](./analysis/data): Data used in the analysis.
 
 ## How to download and run locally
