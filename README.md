@@ -25,7 +25,7 @@ Please cite this compendium as:
 
 ## Contents
 
-The **analysis(/analysis)** directory contains:
+The **[analysis](./analysis)** directory contains:
 
 - [:file_folder: scripts](./analysis/scripts): Series of scripts with
   code to reproduce the analysis. It also has an annotated R Markdown
