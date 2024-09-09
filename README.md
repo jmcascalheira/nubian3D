@@ -38,13 +38,6 @@ The **[analysis](./analysis)** directory contains:
   a [R Markdown Variant
   file](./analysis/annotated-methods/GM_method_variant.Rmd) with several
   extra steps to filter out anomalies.
-- [:file_folder: annotated-methods](./analysis/annotated-methods):
-  includes a [R Markdown
-  file](./analysis/annotated-methods/GM_Nubian_methods.Rmd) with
-  detailed explanation of the different steps used for the analysis, and
-  a [R Markdown Variant
-  file](./analysis/annotated-methods/GM_method_variant.Rmd) with several
-  extra steps to filter out anomalies.
 - [:file_folder: data](./analysis/data): Data used in the analysis.
 
 ## How to download and run locally
