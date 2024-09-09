@@ -1,5 +1,5 @@
 Package: nubian3D
-Title: Quantifying Levallois: a 3D geometric morphometrics approach to Nubian technology
+Title: Quantifying Levallois: a 3D geometric morphometric approach to Nubian technology
 Version: 0.0.0.9000
 Authors@R:
     person("Emily", "Hallinan", , "eshallinan@ualg.pt", role = c("aut", "cre"))
