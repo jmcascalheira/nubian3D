@@ -58,12 +58,12 @@ Desktop](https://rstudio.com/products/rstudio/download/).
 You can download the compendium as a zip from from this URL:
 [master.zip](./archive/master.zip). After unzipping: - open the `.Rproj`
 file in RStudio - run `renv::restore()` to ensure you have the packages
-this analysis depends on. - finally, go to [:file_folder:
+this analysis depends on. Finally, go to [:file_folder:
 scripts](./analysis/scripts), open each of the scripts in order and run
 the code to produce the results. Alternatively, look for the
-`/analysis/scripts/GEM_Nubian_methods.Rmd` and render it. Please notice
+`/analysis/scripts/GM_Nubian_methods.Rmd` and render it. Please notice
 that both options will take several minutes to render, so if you just
-want to check the final result, there’s already html files in the same
+want to check the final result, there are already html files in the same
 folder with the rendered documents.
 
 ### Licenses
