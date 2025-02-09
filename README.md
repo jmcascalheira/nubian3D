@@ -38,7 +38,7 @@ The **[analysis](./analysis)** directory contains:
   a [R Markdown Variant
   file](./analysis/annotated-methods/GM_method_variant.Rmd) with several
   extra steps to filter out anomalies.
-- [:file_folder: data](./analysis/data): Data used in the analysis.
+- [:file_folder: data](./analysis/data): Processes data used in the analysis. This ONLY includes derived data NOT raw data. Raw data is either downloaded from our [OSF repository](https://osf.io/sj8zv/) or by using the [Step4_Download_data_OSF.R](./analysis/scripts/Step4_Download_data_OSF.R) script or the R Markdown files provided in the [annotated-methods folder](./analysis/annotated-methods).
 
 ## How to download and run locally
 
